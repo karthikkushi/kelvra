@@ -190,7 +190,7 @@ export default function StudyPage() {
         outputs.has("plan")       && generateStudyPlan(content, outputLang).then((r) => (generated.plan = r)).catch(() => {}),
       ]);
 
-      if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your VITE_GROQ_API_KEY in the .env file.");
+      if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your GROQ_API_KEY in the .env file.");
       setResults(generated);
       const first = ["summary","flashcards","quiz","plan"].find((k) => generated[k]);
       if (first) setActiveResult(first);
