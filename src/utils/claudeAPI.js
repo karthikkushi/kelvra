@@ -1,12 +1,12 @@
 // src/utils/claudeAPI.js
 // ── Using Groq API (free — 14,400 requests/day, no rate limit issues) ──
 
-const API_KEY = import.meta.env.GROQ_API_KEY;
+const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 async function callGroq(prompt) {
   if (!API_KEY) {
-    throw new Error("Groq API key not found. Add GROQ_API_KEY to your .env file and restart the server.");
+    throw new Error("Groq API key not found. Add Vite_GROQ_API_KEY to your .env file and restart the server.");
   }
 
   let response;
