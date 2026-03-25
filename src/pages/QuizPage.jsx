@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
 import { saveQuizScore } from "../utils/supabase";
+import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const QUESTIONS = [
   {
@@ -80,23 +81,6 @@ const QUESTIONS = [
 
 const DIFFICULTY_CYCLE = ["Easy", "Medium", "Hard"];
 
-// TTS helper
-function speak(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.9;
-  utter.pitch = 1;
-  const voices = window.speechSynthesis.getVoices();
-  const englishVoice = voices.find((v) => v.lang.startsWith("en"));
-  if (englishVoice) utter.voice = englishVoice;
-  window.speechSynthesis.speak(utter);
-}
-
-function getVoiceEnabled() {
-  try { return localStorage.getItem("kelvra_voice") === "true"; } catch { return false; }
-}
-
 // Normalize generated quiz options {A: text} → [{id: "A", text}]
 function normalizeQuestions(qs) {
   return qs.map((q) => ({
@@ -116,6 +100,7 @@ export default function QuizPage({ user }) {
   const [buddyMsg, setBuddyMsg] = useState("");
   const [diffIndex, setDiffIndex] = useState(1);
   const [done, setDone] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(getVoiceEnabled());
 
   // Load from sessionStorage if available
   useEffect(() => {
@@ -129,6 +114,13 @@ export default function QuizPage({ user }) {
       }
     } catch (_) {}
   }, []);
+
+  useEffect(() => {
+    if (voiceOn && questions[qIndex]?.question) {
+      setTimeout(() => speak(questions[qIndex].question), 300);
+    }
+    return () => stopSpeaking();
+  }, [qIndex]);
 
   const q = questions[qIndex];
   const answered = answers[qIndex] !== undefined;
@@ -146,6 +138,10 @@ export default function QuizPage({ user }) {
     if (answered) return;
     setAnswers({ ...answers, [qIndex]: id });
     setShowExplanation(true);
+    if (voiceOn) {
+      const prefix = id === q.correct ? "Correct!" : "Not quite.";
+      setTimeout(() => speak(prefix + " " + q.explanation), 500);
+    }
     if (id === q.correct) {
       setBuddyMsg("Great job! You're on fire 🔥");
       setDiffIndex(Math.min(diffIndex + 1, 2));
@@ -257,6 +253,30 @@ export default function QuizPage({ user }) {
                 <span className="w-2 h-2 rounded-full bg-current" />
                 Difficulty: {DIFFICULTY_CYCLE[diffIndex]}
               </div>
+              {isSpeechSupported() && (
+                <button
+                  onClick={() => {
+                    const next = !voiceOn;
+                    setVoiceOn(next);
+                    setVoiceEnabled(next);
+                    if (!next) stopSpeaking();
+                    else speak("Voice buddy is on.");
+                  }}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all text-xs font-bold uppercase tracking-wider ${
+                    voiceOn
+                      ? "bg-primary-container/10 border-primary-container/30 text-primary-container"
+                      : "bg-surface-container-low border-outline-variant/20 text-on-surface-variant"
+                  }`}
+                >
+                  <span
+                    className="material-symbols-outlined text-sm"
+                    style={{ fontVariationSettings: voiceOn ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    {voiceOn ? "volume_up" : "volume_off"}
+                  </span>
+                  {voiceOn ? "ON" : "OFF"}
+                </button>
+              )}
               <button onClick={() => navigate("/dashboard")}
                 className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container-highest hover:bg-surface-bright transition-colors">
                 <span className="material-symbols-outlined text-on-surface-variant">close</span>
