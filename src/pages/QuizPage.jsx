@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
+import { saveQuizScore } from "../utils/supabase";
 
 const QUESTIONS = [
   {
@@ -79,8 +80,36 @@ const QUESTIONS = [
 
 const DIFFICULTY_CYCLE = ["Easy", "Medium", "Hard"];
 
-export default function QuizPage() {
+// TTS helper
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.9;
+  utter.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const englishVoice = voices.find((v) => v.lang.startsWith("en"));
+  if (englishVoice) utter.voice = englishVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+function getVoiceEnabled() {
+  try { return localStorage.getItem("kelvra_voice") === "true"; } catch { return false; }
+}
+
+// Normalize generated quiz options {A: text} → [{id: "A", text}]
+function normalizeQuestions(qs) {
+  return qs.map((q) => ({
+    ...q,
+    options: Array.isArray(q.options)
+      ? q.options
+      : Object.entries(q.options).map(([id, text]) => ({ id, text })),
+  }));
+}
+
+export default function QuizPage({ user }) {
   const navigate = useNavigate();
+  const [questions, setQuestions] = useState(QUESTIONS);
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
@@ -88,11 +117,24 @@ export default function QuizPage() {
   const [diffIndex, setDiffIndex] = useState(1);
   const [done, setDone] = useState(false);
 
-  const q = QUESTIONS[qIndex];
+  // Load from sessionStorage if available
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("kelvra_quiz");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setQuestions(normalizeQuestions(parsed));
+        }
+      }
+    } catch (_) {}
+  }, []);
+
+  const q = questions[qIndex];
   const answered = answers[qIndex] !== undefined;
   const correct = answers[qIndex] === q.correct;
-  const score = Object.entries(answers).filter(([i, a]) => QUESTIONS[i].correct === a).length;
-  const total = QUESTIONS.length;
+  const score = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
+  const total = questions.length;
 
   const DIFF_COLORS = {
     Easy:   "bg-primary-container/10 text-primary border-primary/20",
@@ -114,14 +156,25 @@ export default function QuizPage() {
     setTimeout(() => setBuddyMsg(""), 3000);
   };
 
-  const next = () => {
+  const next = async () => {
     setShowExplanation(false);
-    if (qIndex < total - 1) setQIndex(qIndex + 1);
-    else setDone(true);
+    if (qIndex < total - 1) {
+      setQIndex(qIndex + 1);
+    } else {
+      setDone(true);
+      // Save quiz score to Supabase (non-blocking)
+      if (user?.id) {
+        try {
+          const finalScore = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
+          const topicName = questions[0]?.topic || "Quiz";
+          await saveQuizScore(user.id, topicName, finalScore, total);
+        } catch (_) { /* never block UI */ }
+      }
+    }
   };
 
   const getOptionStyle = (id) => {
-    if (!answered) return "bg-surface-container-low border border-outline-variant/10 hover:bg-surface-container-highest hover:translate-y-[-2px] cursor-pointer";
+    if (!answered) return "bg-surface-container-low border border-outline-variant/10 hover:bg-surface-container-highest hover:border-primary-container/40 hover:translate-y-[-2px] cursor-pointer";
     if (id === q.correct) return "bg-primary-container/10 border-2 border-primary-container/60";
     if (id === answers[qIndex] && id !== q.correct) return "bg-error-container/10 border-2 border-error/40";
     return "bg-surface-container-low border border-outline-variant/10 opacity-50";
@@ -218,7 +271,8 @@ export default function QuizPage() {
           {/* Question card */}
           <div className="w-full bg-surface-container-low rounded-[2rem] p-8 lg:p-12 relative overflow-hidden border border-outline-variant/5">
             <div className="absolute top-0 right-0 p-6">
-              <button className="p-3 bg-surface-container-highest rounded-full text-primary-fixed hover:scale-110 transition-transform">
+              <button onClick={() => speak(q.question)}
+                className="p-3 bg-surface-container-highest rounded-full text-primary-container hover:scale-110 transition-transform border border-outline-variant/10">
                 <span className="material-symbols-outlined" style={{ fontVariationSettings:"'FILL' 1" }}>volume_up</span>
               </button>
             </div>
@@ -233,8 +287,8 @@ export default function QuizPage() {
             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-primary-fixed/5 blur-[80px] rounded-full pointer-events-none" />
           </div>
 
-          {/* Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+          {/* Options — single column on mobile, 2-col on md+ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
             {q.options.map((opt) => (
               <button key={opt.id} onClick={() => answer(opt.id)}
                 className={`group p-6 rounded-2xl flex items-center gap-4 text-left transition-all ${getOptionStyle(opt.id)}`}>
@@ -310,7 +364,8 @@ export default function QuizPage() {
       </main>
 
       {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-lg border-t border-outline-variant/10 z-50 px-6 py-3 flex justify-between items-center">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-lg border-t border-outline-variant/10 z-50 px-6 py-3 flex justify-between items-center"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {[
           { icon:"dashboard", path:"/dashboard" },
           { icon:"menu_book", path:"/study" },
