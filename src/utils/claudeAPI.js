@@ -214,6 +214,31 @@ Give a helpful hint without giving away the answer. Keep it to 1-2 sentences.`;
   return await callGroq(prompt);
 }
 
+export async function extractTextFromImage(base64Image, mimeType) {
+  if (!API_KEY) throw new Error("Groq API key not found.");
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-11b-vision-preview",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
+          { type: "text", text: "Extract and transcribe all text from this image. If it contains diagrams, describe them in text suitable for studying." },
+        ],
+      }],
+      max_tokens: 2048,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || "Vision API error");
+  return data?.choices?.[0]?.message?.content || "";
+}
+
 export async function getCoachMessage(weakTopics = [], streakDays = 0) {
   const prompt = `You are a friendly AI study coach. Generate a short motivating message.
 Weak topics: ${weakTopics.join(", ") || "none yet"}

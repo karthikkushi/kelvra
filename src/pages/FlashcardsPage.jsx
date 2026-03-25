@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
 
@@ -41,20 +41,55 @@ const RATINGS = [
   { id: "easy", icon: "sentiment_very_satisfied",    label: "Easy",   hover: "hover:bg-primary-container/10 hover:border-primary-container/40", active: "text-primary-container" },
 ];
 
+// ── TTS helper ──
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.9;
+  utter.pitch = 1;
+  const voices = window.speechSynthesis.getVoices();
+  const englishVoice = voices.find((v) => v.lang.startsWith("en"));
+  if (englishVoice) utter.voice = englishVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+function getVoiceEnabled() {
+  try { return localStorage.getItem("kelvra_voice") === "true"; } catch { return false; }
+}
+function setVoiceEnabled(val) {
+  try { localStorage.setItem("kelvra_voice", val ? "true" : "false"); } catch {}
+}
+
 export default function FlashcardsPage() {
   const navigate = useNavigate();
+  const [cards, setCards] = useState(CARDS);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [ratings, setRatings] = useState({});
   const [voiceOpen, setVoiceOpen] = useState(true);
+  const [voiceOn, setVoiceOn] = useState(getVoiceEnabled);
   const [done, setDone] = useState(false);
 
-  const card = CARDS[index];
-  const mastery = Math.round((index / CARDS.length) * 100);
+  // Load cards from sessionStorage if available
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("kelvra_flashcards");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) setCards(parsed);
+      }
+    } catch (_) {}
+    // Preload voices
+    window.speechSynthesis?.getVoices();
+  }, []);
+
+  const card = cards[index];
+  const mastery = Math.round((index / cards.length) * 100);
 
   const rate = (r) => {
     setRatings({ ...ratings, [index]: r });
-    if (index < CARDS.length - 1) {
+    if (index < cards.length - 1) {
       setFlipped(false);
       setTimeout(() => setIndex(index + 1), 200);
     } else {
@@ -62,7 +97,18 @@ export default function FlashcardsPage() {
     }
   };
 
-  const flip = () => setFlipped(!flipped);
+  const flip = () => {
+    setFlipped(!flipped);
+    if (!flipped && voiceOn && card?.answer) {
+      speak(card.answer);
+    }
+  };
+
+  const toggleVoice = () => {
+    const next = !voiceOn;
+    setVoiceOn(next);
+    setVoiceEnabled(next);
+  };
 
   const isWeak = ratings[index] === "hard";
 
@@ -79,7 +125,7 @@ export default function FlashcardsPage() {
                 style={{ fontVariationSettings: "'FILL' 1" }}>celebration</span>
             </div>
             <h2 className="font-headline text-3xl font-extrabold mb-3">Session Complete!</h2>
-            <p className="text-on-surface-variant mb-8">You reviewed all {CARDS.length} cards.</p>
+            <p className="text-on-surface-variant mb-8">You reviewed all {cards.length} cards.</p>
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-surface-container-highest/40 rounded-xl p-4 text-center">
                 <div className="text-2xl font-headline font-extrabold text-primary-container">{easyCount}</div>
@@ -117,24 +163,34 @@ export default function FlashcardsPage() {
           <div className="flex justify-between items-end">
             <div>
               <span className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant">
-                Session: Neuroplasticity 101
+                Session: {card?.topic || "Flashcards"}
               </span>
               <h2 className="font-headline text-2xl font-bold text-on-surface">
                 Card {index + 1}{" "}
-                <span className="text-on-surface-variant font-normal text-lg">of {CARDS.length}</span>
+                <span className="text-on-surface-variant font-normal text-lg">of {cards.length}</span>
               </h2>
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-3">
+              {/* Voice toggle */}
+              <button onClick={toggleVoice}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  voiceOn
+                    ? "bg-primary-container/10 border-primary-container/30 text-primary-container"
+                    : "border-outline-variant/20 text-on-surface-variant"
+                }`}>
+                <span className="material-symbols-outlined text-sm">{voiceOn ? "volume_up" : "volume_off"}</span>
+                Voice {voiceOn ? "ON" : "OFF"}
+              </button>
               <span className="font-label text-sm text-primary-container font-bold tracking-tight">
                 {mastery}% Mastery
               </span>
             </div>
           </div>
           {/* Progress bar */}
-          <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
             <div
               className="h-full bg-primary-container shadow-[0_0_12px_rgba(110,231,183,0.3)] transition-all duration-500"
-              style={{ width: `${((index + 1) / CARDS.length) * 100}%` }}
+              style={{ width: `${((index + 1) / cards.length) * 100}%` }}
             />
           </div>
         </header>
@@ -173,12 +229,12 @@ export default function FlashcardsPage() {
                 className="absolute inset-0 w-full bg-surface-container-low border border-outline-variant/15 rounded-3xl p-10 md:p-12 flex flex-col items-center justify-center shadow-2xl"
                 style={{ backfaceVisibility: "hidden", minHeight: 280 }}>
                 <div className="absolute top-8 left-8">
-                  <span className="px-3 py-1 bg-secondary-container/30 text-secondary text-[10px] font-bold uppercase tracking-widest rounded-full border border-secondary-container/50">
-                    {card.topic}
+                  <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-full border border-outline-variant/20">
+                    {card?.topic}
                   </span>
                 </div>
                 <h3 className="font-headline text-2xl md:text-3xl font-extrabold text-on-surface leading-tight tracking-tighter text-center mt-8">
-                  {card.question}
+                  {card?.question}
                 </h3>
                 <div className="absolute bottom-8 right-8 flex items-center gap-2 text-on-surface-variant opacity-40">
                   <span className="text-[10px] font-label uppercase tracking-widest">Tap to reveal</span>
@@ -188,15 +244,21 @@ export default function FlashcardsPage() {
 
               {/* BACK */}
               <div
-                className="absolute inset-0 w-full bg-surface-container-high border border-primary/10 rounded-3xl p-10 md:p-12 flex flex-col items-center justify-center shadow-2xl"
+                className="absolute inset-0 w-full bg-surface-container-high border border-primary-container/20 rounded-3xl p-10 md:p-12 flex flex-col items-center justify-center shadow-2xl"
                 style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", minHeight: 280 }}>
-                <div className="absolute top-8 left-8">
+                <div className="absolute top-8 left-8 flex items-center gap-2">
                   <span className="px-3 py-1 bg-primary-container/20 text-primary-container text-[10px] font-bold uppercase tracking-widest rounded-full border border-primary-container/30">
                     Answer
                   </span>
+                  {/* Speak button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); speak(card?.answer || ""); }}
+                    className="w-7 h-7 rounded-full bg-primary-container/10 flex items-center justify-center hover:bg-primary-container/20 transition-colors border border-primary-container/20">
+                    <span className="material-symbols-outlined text-primary-container text-sm">volume_up</span>
+                  </button>
                 </div>
                 <p className="font-body text-lg text-on-surface leading-relaxed text-center mt-8">
-                  {card.answer}
+                  {card?.answer}
                 </p>
               </div>
             </div>
@@ -212,13 +274,13 @@ export default function FlashcardsPage() {
                 <button
                   key={r.id}
                   onClick={() => flipped && rate(r.id)}
-                  className={`flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 transition-all group ${
+                  className={`flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 transition-all group min-h-[48px] ${
                     flipped ? `${r.hover} cursor-pointer` : "opacity-40 cursor-not-allowed"
                   } ${ratings[index] === r.id ? "border-2" : ""}`}>
                   <span className={`material-symbols-outlined ${r.active} group-hover:scale-110 transition-transform`}>
                     {r.icon}
                   </span>
-                  <span className={`text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest`}>
+                  <span className="text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest">
                     {r.label}
                   </span>
                 </button>
@@ -235,9 +297,9 @@ export default function FlashcardsPage() {
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Prev
             </button>
-            <span className="text-on-surface-variant text-sm">{index + 1} / {CARDS.length}</span>
+            <span className="text-on-surface-variant text-sm">{index + 1} / {cards.length}</span>
             <button
-              onClick={() => { if (index < CARDS.length - 1) { setFlipped(false); setTimeout(() => setIndex(index + 1), 200); } else setDone(true); }}
+              onClick={() => { if (index < cards.length - 1) { setFlipped(false); setTimeout(() => setIndex(index + 1), 200); } else setDone(true); }}
               className="px-6 py-2.5 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-on-surface transition-all text-sm font-bold uppercase tracking-widest flex items-center gap-2">
               Skip
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
@@ -248,25 +310,25 @@ export default function FlashcardsPage() {
         {/* AI Voice Buddy */}
         {voiceOpen && (
           <div className="fixed bottom-8 right-8 z-50">
-            <div className="bg-surface-container-highest/40 backdrop-blur-2xl border border-outline-variant/20 rounded-2xl p-4 pr-6 flex items-center gap-4 shadow-2xl max-w-xs group cursor-pointer hover:bg-surface-container-highest/60 transition-all">
+            <div className="bg-surface-container-highest/40 backdrop-blur-2xl border border-outline-variant/20 rounded-2xl p-4 pr-6 flex items-center gap-4 shadow-2xl max-w-xs">
               <div className="relative">
                 <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center">
                   <span className="material-symbols-outlined text-on-primary-container text-2xl"
                     style={{ fontVariationSettings:"'FILL' 1" }}>smart_toy</span>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary-container rounded-full border-2 border-surface-container-lowest flex items-center justify-center">
+                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-container-lowest flex items-center justify-center ${voiceOn ? "bg-primary-container" : "bg-surface-container-highest"}`}>
                   <span className="w-1.5 h-1.5 bg-on-primary-container rounded-full" />
                 </div>
               </div>
               <div className="flex flex-col gap-1.5">
                 <p className="text-xs font-medium text-on-surface leading-tight">
-                  Say the answer out loud, I'm listening…
+                  {voiceOn ? "Auto-reading answers aloud…" : "Voice is off — tap to enable"}
                 </p>
                 {/* Waveform */}
                 <div className="flex items-end gap-0.5 h-4">
                   {[40, 80, 100, 50, 70, 30, 60, 90, 45, 75].map((h, i) => (
                     <div key={i}
-                      className="w-1 bg-primary-container rounded-full animate-pulse"
+                      className={`w-1 rounded-full ${voiceOn ? "bg-primary-container animate-pulse" : "bg-outline-variant/30"}`}
                       style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }} />
                   ))}
                 </div>
@@ -281,11 +343,12 @@ export default function FlashcardsPage() {
         )}
 
         {/* Decorative gradient */}
-        <div className="fixed top-0 right-0 w-1/3 h-screen bg-gradient-to-l from-primary/5 to-transparent pointer-events-none -z-10" />
+        <div className="fixed top-0 right-0 w-1/3 h-screen bg-gradient-to-l from-primary-container/5 to-transparent pointer-events-none -z-10" />
       </main>
 
       {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low flex justify-around items-center py-4 border-t border-outline-variant/10 z-40">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low flex justify-around items-center py-4 border-t border-outline-variant/10 z-40"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
         {[
           { icon:"dashboard", path:"/dashboard" },
           { icon:"menu_book", path:"/study" },

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { saveOnboardingPrefs } from "../utils/supabase";
 
 const STEPS = [
   {
@@ -35,6 +36,7 @@ export default function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [selected, setSelected] = useState([null, null, null]);
+  const [saving, setSaving] = useState(false);
 
   const pick = (i) => {
     const next = [...selected];
@@ -42,15 +44,30 @@ export default function OnboardingPage() {
     setSelected(next);
   };
 
-  const next = () => {
-    if (step < 2) setStep(step + 1);
-    else navigate("/dashboard");
+  const next = async () => {
+    if (step < 2) {
+      setStep(step + 1);
+    } else {
+      // Save preferences and navigate to dashboard
+      setSaving(true);
+      try {
+        const studyType     = STEPS[0].options[selected[0] ?? 0].title;
+        const goal          = STEPS[1].options[selected[1] ?? 0].title;
+        const learningStyle = STEPS[2].options[selected[2] ?? 0].title;
+        await saveOnboardingPrefs(studyType, goal, learningStyle);
+      } catch (_) {
+        // Never block navigation — prefs save is best-effort
+      } finally {
+        setSaving(false);
+        navigate("/dashboard");
+      }
+    }
   };
 
   const back = () => { if (step > 0) setStep(step - 1); };
 
   return (
-    <div className="dark min-h-screen bg-background text-on-background font-body flex items-center justify-center p-6 overflow-hidden">
+    <div className="dark min-h-screen bg-background text-on-surface font-body flex items-center justify-center p-6 overflow-hidden">
 
       {/* Background blobs */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
@@ -97,7 +114,7 @@ export default function OnboardingPage() {
         </aside>
 
         {/* ── RIGHT CONTENT ── */}
-        <section className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-surface-dim/40 relative overflow-hidden">
+        <section className="flex-1 p-8 md:p-12 flex flex-col justify-between bg-background/20 relative overflow-hidden">
 
           {/* Step content */}
           <div>
@@ -124,12 +141,10 @@ export default function OnboardingPage() {
                   <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-transform ${
                     selected[step] === i ? "bg-primary-container/20 scale-110" : "bg-surface-container-highest group-hover:scale-110"
                   }`}>
-                    <span className={`material-symbols-outlined ${
-                      selected[step] === i ? "text-primary-container" : "text-primary-container"
-                    }`}>{opt.icon}</span>
+                    <span className="material-symbols-outlined text-primary-container">{opt.icon}</span>
                   </div>
                   <h3 className={`font-headline font-bold text-lg mb-1 transition-colors ${
-                    selected[step] === i ? "text-primary-container" : "group-hover:text-primary-container"
+                    selected[step] === i ? "text-primary-container" : "group-hover:text-primary-container text-on-surface"
                   }`}>{opt.title}</h3>
                   <p className="text-on-surface-variant text-sm font-medium">{opt.desc}</p>
                 </button>
@@ -153,13 +168,16 @@ export default function OnboardingPage() {
 
             <button
               onClick={next}
-              className="group flex items-center gap-3 bg-primary-container hover:bg-primary px-8 py-4 rounded-full transition-all duration-300 active:scale-95 shadow-lg shadow-primary-container/20">
+              disabled={saving}
+              className="group flex items-center gap-3 bg-primary-container hover:bg-primary px-8 py-4 rounded-full transition-all duration-300 active:scale-95 shadow-lg shadow-primary-container/20 disabled:opacity-70">
               <span className="font-headline font-bold text-on-primary-container uppercase tracking-widest text-sm">
-                {step === 2 ? "Start Learning" : "Next"}
+                {saving ? "Saving…" : step === 2 ? "Start Learning" : "Next"}
               </span>
-              <span className="material-symbols-outlined text-on-primary-container group-hover:translate-x-1 transition-transform">
-                {step === 2 ? "rocket_launch" : "arrow_forward"}
-              </span>
+              {!saving && (
+                <span className="material-symbols-outlined text-on-primary-container group-hover:translate-x-1 transition-transform">
+                  {step === 2 ? "rocket_launch" : "arrow_forward"}
+                </span>
+              )}
             </button>
           </footer>
 

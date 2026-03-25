@@ -6,7 +6,9 @@ import {
   generateQuiz,
   generateSummary,
   generateStudyPlan,
+  extractTextFromImage,
 } from "../utils/claudeAPI";
+import { saveStudySession } from "../utils/supabase";
 
 const TABS = [
   { id: "paste",  icon: "notes",           label: "Paste Notes" },
@@ -142,7 +144,7 @@ function PlanResult({ data }) {
   );
 }
 
-export default function StudyPage() {
+export default function StudyPage({ user }) {
   const navigate = useNavigate();
   const [tab, setTab] = useState("paste");
   const [text, setText] = useState("");
@@ -156,6 +158,14 @@ export default function StudyPage() {
   const [error, setError] = useState("");
   const [results, setResults] = useState(null);
   const [activeResult, setActiveResult] = useState("summary");
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfText, setPdfText] = useState("");
+  const [pdfExtracting, setPdfExtracting] = useState(false);
+  const [pdfInfo, setPdfInfo] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageText, setImageText] = useState("");
+  const [imageExtracting, setImageExtracting] = useState(false);
 
   const toggleOutput = (id) => {
     const next = new Set(outputs);
@@ -166,7 +176,83 @@ export default function StudyPage() {
   const getContent = () => {
     if (tab === "paste") return text.trim();
     if (tab === "topic") return topic.trim() ? `Topic: ${topic.trim()}` : "";
+    if (tab === "pdf")   return pdfText.trim();
+    if (tab === "image") return imageText.trim();
     return "";
+  };
+
+  const getTopicName = () => {
+    if (tab === "topic" && topic.trim()) return topic.trim();
+    if (tab === "pdf" && pdfInfo?.name) return pdfInfo.name;
+    if (tab === "image" && imageFile?.name) return imageFile.name;
+    if (tab === "paste" && text.trim()) return text.trim().slice(0, 60);
+    return "Study Session";
+  };
+
+  const handlePdfUpload = async (file) => {
+    if (!file || file.type !== "application/pdf") {
+      setError("Please upload a valid PDF file.");
+      return;
+    }
+    setPdfFile(file);
+    setPdfText("");
+    setPdfInfo(null);
+    setPdfExtracting(true);
+    setError("");
+    try {
+      const pdfjsLib = await import("pdfjs-dist");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      if (!fullText.trim()) throw new Error("No text found. Try a text-based PDF, not a scanned image.");
+      setPdfText(fullText);
+      setPdfInfo({ name: file.name.replace(/\.pdf$/i, ""), pages: pdf.numPages });
+    } catch (err) {
+      setError("Could not read PDF. Try a text-based PDF, not a scanned image.");
+      setPdfFile(null);
+    } finally {
+      setPdfExtracting(false);
+    }
+  };
+
+  const handleImageUpload = async (file) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    if (!file || !allowed.includes(file.type)) {
+      setError("Please upload a JPG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be under 5MB.");
+      return;
+    }
+    setImageFile(file);
+    setImageText("");
+    setImageExtracting(true);
+    setError("");
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target.result;
+      setImagePreview(dataUrl);
+      const base64 = dataUrl.split(",")[1];
+      try {
+        const extracted = await extractTextFromImage(base64, file.type);
+        if (!extracted.trim()) throw new Error("No text extracted from image.");
+        setImageText(extracted);
+      } catch (err) {
+        setError("Could not extract text from image. Make sure it contains readable text.");
+        setImageFile(null);
+        setImagePreview("");
+      } finally {
+        setImageExtracting(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGenerate = async () => {
@@ -194,6 +280,13 @@ export default function StudyPage() {
       setResults(generated);
       const first = ["summary","flashcards","quiz","plan"].find((k) => generated[k]);
       if (first) setActiveResult(first);
+
+      // Save session to Supabase (non-blocking)
+      if (user?.id) {
+        try {
+          await saveStudySession(user.id, getTopicName(), generated);
+        } catch (_) { /* never block UI */ }
+      }
     } catch (err) {
       setError(err.message || "Something went wrong. Check your API key.");
     } finally {
@@ -265,13 +358,61 @@ export default function StudyPage() {
                     <p className="text-on-surface-variant text-sm">AI will generate a complete study kit for this topic from scratch.</p>
                   </div>
                 )}
-                {(tab === "pdf" || tab === "image") && (
-                  <div className="h-72 bg-surface-container-low border-2 border-dashed border-outline-variant/30 rounded-2xl flex flex-col items-center justify-center gap-4">
-                    <span className="material-symbols-outlined text-primary-container text-4xl">{tab === "pdf" ? "picture_as_pdf" : "image"}</span>
-                    <div className="text-center">
-                      <p className="text-on-surface font-bold">{tab === "pdf" ? "PDF" : "Image"} upload — coming soon</p>
-                      <p className="text-on-surface-variant text-sm mt-1">Use "Paste Notes" or "Type Topic" for now</p>
-                    </div>
+                {tab === "pdf" && (
+                  <div className="h-72 bg-surface-container-low border border-outline-variant/15 rounded-2xl flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+                    {pdfExtracting ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-primary-container/30 border-t-primary-container rounded-full animate-spin" />
+                        <p className="text-on-surface-variant text-sm">Extracting text from PDF...</p>
+                      </div>
+                    ) : pdfInfo ? (
+                      <div className="flex flex-col items-center gap-3 px-8 text-center">
+                        <span className="material-symbols-outlined text-primary-container text-4xl" style={{fontVariationSettings:"'FILL' 1"}}>picture_as_pdf</span>
+                        <p className="text-on-surface font-bold">{pdfInfo.name}</p>
+                        <p className="text-on-surface-variant text-sm">{pdfInfo.pages} pages extracted · {pdfText.length.toLocaleString()} characters</p>
+                        <button onClick={() => { setPdfFile(null); setPdfText(""); setPdfInfo(null); }}
+                          className="text-xs text-on-surface-variant hover:text-error transition-colors">Remove</button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center gap-4 cursor-pointer w-full h-full justify-center border-2 border-dashed border-outline-variant/30 rounded-2xl hover:border-primary-container/40 transition-colors">
+                        <span className="material-symbols-outlined text-primary-container text-4xl">picture_as_pdf</span>
+                        <div className="text-center">
+                          <p className="text-on-surface font-bold">Upload PDF</p>
+                          <p className="text-on-surface-variant text-sm mt-1">Click to browse — text-based PDFs only</p>
+                        </div>
+                        <input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.files?.[0] && handlePdfUpload(e.target.files[0])} />
+                      </label>
+                    )}
+                  </div>
+                )}
+                {tab === "image" && (
+                  <div className="h-72 bg-surface-container-low border border-outline-variant/15 rounded-2xl flex flex-col items-center justify-center gap-4 relative overflow-hidden">
+                    {imageExtracting ? (
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-2 border-primary-container/30 border-t-primary-container rounded-full animate-spin" />
+                        <p className="text-on-surface-variant text-sm">Extracting text from image...</p>
+                      </div>
+                    ) : imagePreview && imageText ? (
+                      <div className="flex items-center gap-6 px-8 w-full">
+                        <img src={imagePreview} alt="Uploaded" className="w-24 h-24 object-cover rounded-xl border border-outline-variant/20 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-on-surface font-bold text-sm">{imageFile?.name}</p>
+                          <p className="text-on-surface-variant text-xs mt-1">{imageText.length.toLocaleString()} characters extracted</p>
+                          <p className="text-on-surface-variant text-xs mt-2 line-clamp-3">{imageText.slice(0, 120)}...</p>
+                          <button onClick={() => { setImageFile(null); setImagePreview(""); setImageText(""); }}
+                            className="text-xs text-on-surface-variant hover:text-error transition-colors mt-2">Remove</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center gap-4 cursor-pointer w-full h-full justify-center border-2 border-dashed border-outline-variant/30 rounded-2xl hover:border-primary-container/40 transition-colors">
+                        <span className="material-symbols-outlined text-primary-container text-4xl">image</span>
+                        <div className="text-center">
+                          <p className="text-on-surface font-bold">Upload Image</p>
+                          <p className="text-on-surface-variant text-sm mt-1">JPG, PNG, WEBP — max 5MB</p>
+                        </div>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && handleImageUpload(e.target.files[0])} />
+                      </label>
+                    )}
                   </div>
                 )}
               </div>

@@ -140,7 +140,7 @@ export default function FocusPage() {
               <div className="text-[10px] font-label uppercase tracking-[0.3em] text-on-surface-variant mb-2">
                 {mode === "study" ? "Focus Time" : "Break Time"}
               </div>
-              <h1 className="font-headline font-bold text-[7rem] md:text-[9rem] tracking-tighter leading-none text-on-surface">
+              <h1 className="font-headline font-bold text-[5rem] sm:text-[7rem] md:text-[9rem] tracking-tighter leading-none text-on-surface">
                 {fmt(seconds)}
               </h1>
             </div>
