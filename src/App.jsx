@@ -12,6 +12,7 @@ import FlashcardsPage from "./pages/FlashcardsPage";
 import QuizPage       from "./pages/QuizPage";
 import ProgressPage   from "./pages/ProgressPage";
 import FocusPage      from "./pages/FocusPage";
+import SettingsPage   from "./pages/SettingsPage";
 
 function Protected({ user, children }) {
   if (user === undefined) {
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/quiz"       element={<Protected user={user}><QuizPage        user={user} /></Protected>} />
         <Route path="/progress"   element={<Protected user={user}><ProgressPage    user={user} /></Protected>} />
         <Route path="/focus"      element={<Protected user={user}><FocusPage /></Protected>} />
+        <Route path="/settings"   element={<Protected user={user}><SettingsPage   user={user} /></Protected>} />
         <Route path="*"           element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

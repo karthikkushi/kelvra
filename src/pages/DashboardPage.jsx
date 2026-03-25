@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getStudySessions, getQuizScores } from "../utils/supabase";
+import { getStudySessions, getQuizScores, signOut, supabase } from "../utils/supabase";
 
 function calcStreak(sessions) {
   const days = new Set(sessions.map((s) => new Date(s.created_at).toDateString()));
@@ -67,6 +67,19 @@ function Skeleton({ className }) {
 
 function Sidebar({ active = "dashboard" }) {
   const navigate = useNavigate();
+  const [sidebarUser, setSidebarUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSidebarUser(session?.user ?? null);
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
+
   const links = [
     { id: "dashboard",  icon: "dashboard",  label: "Dashboard",  path: "/dashboard" },
     { id: "study",      icon: "menu_book",  label: "Study",      path: "/study" },
@@ -74,6 +87,11 @@ function Sidebar({ active = "dashboard" }) {
     { id: "quiz",       icon: "quiz",       label: "Quiz",       path: "/quiz" },
     { id: "insights",   icon: "insights",   label: "Insights",   path: "/progress" },
   ];
+
+  const initials = sidebarUser?.user_metadata?.full_name
+    ? sidebarUser.user_metadata.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : sidebarUser?.email?.[0]?.toUpperCase() ?? "K";
+
   return (
     <aside className="h-screen w-64 fixed left-0 top-0 z-40 bg-surface-container-low flex-col py-6 gap-2 hidden md:flex">
       <div className="px-6 mb-8">
@@ -98,16 +116,32 @@ function Sidebar({ active = "dashboard" }) {
         ))}
       </nav>
       <div className="px-4 mt-auto space-y-1">
-        <button className="w-full bg-primary-container text-on-primary-container font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 mb-4 hover:scale-[1.02] active:scale-95 transition-all text-sm">
-          <span className="material-symbols-outlined text-sm">bolt</span>
-          Upgrade to Pro
-        </button>
-        {["settings", "help_outline"].map((icon) => (
-          <div key={icon} className="text-on-surface-variant hover:bg-surface-container-highest/50 mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all">
-            <span className="material-symbols-outlined text-xl">{icon}</span>
-            <span className="font-medium text-sm capitalize">{icon === "help_outline" ? "Help" : "Settings"}</span>
+        {/* User profile row */}
+        <div onClick={() => navigate("/settings")}
+          className="mx-2 mb-3 flex items-center gap-3 px-3 py-3 rounded-xl bg-surface-container-highest/40 border border-outline-variant/10 cursor-pointer hover:bg-surface-container-highest transition-all">
+          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-on-primary-container">{initials}</span>
           </div>
-        ))}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-on-surface truncate">
+              {sidebarUser?.user_metadata?.full_name || sidebarUser?.email || "My Account"}
+            </p>
+            <p className="text-[10px] text-on-surface-variant truncate">{sidebarUser?.email || ""}</p>
+          </div>
+          <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
+        </div>
+
+        <div onClick={() => navigate("/settings")}
+          className={`text-on-surface-variant hover:bg-surface-container-highest/50 mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all ${active === "settings" ? "bg-surface-container-highest text-primary-container" : ""}`}>
+          <span className="material-symbols-outlined text-xl">settings</span>
+          <span className="font-medium text-sm">Settings</span>
+        </div>
+
+        <div onClick={handleLogout}
+          className="text-on-surface-variant hover:bg-error-container/10 hover:text-error mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all">
+          <span className="material-symbols-outlined text-xl">logout</span>
+          <span className="font-medium text-sm">Sign Out</span>
+        </div>
       </div>
     </aside>
   );
