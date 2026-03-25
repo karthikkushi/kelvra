@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
+import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const CARDS = [
   {
@@ -41,25 +42,6 @@ const RATINGS = [
   { id: "easy", icon: "sentiment_very_satisfied",    label: "Easy",   hover: "hover:bg-primary-container/10 hover:border-primary-container/40", active: "text-primary-container" },
 ];
 
-// ── TTS helper ──
-function speak(text) {
-  if (!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.9;
-  utter.pitch = 1;
-  const voices = window.speechSynthesis.getVoices();
-  const englishVoice = voices.find((v) => v.lang.startsWith("en"));
-  if (englishVoice) utter.voice = englishVoice;
-  window.speechSynthesis.speak(utter);
-}
-
-function getVoiceEnabled() {
-  try { return localStorage.getItem("kelvra_voice") === "true"; } catch { return false; }
-}
-function setVoiceEnabled(val) {
-  try { localStorage.setItem("kelvra_voice", val ? "true" : "false"); } catch {}
-}
 
 export default function FlashcardsPage() {
   const navigate = useNavigate();
@@ -67,8 +49,7 @@ export default function FlashcardsPage() {
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [ratings, setRatings] = useState({});
-  const [voiceOpen, setVoiceOpen] = useState(true);
-  const [voiceOn, setVoiceOn] = useState(getVoiceEnabled);
+  const [voiceOn, setVoiceOn] = useState(getVoiceEnabled());
   const [done, setDone] = useState(false);
 
   // Load cards from sessionStorage if available
@@ -99,16 +80,23 @@ export default function FlashcardsPage() {
 
   const flip = () => {
     setFlipped(!flipped);
-    if (!flipped && voiceOn && card?.answer) {
-      speak(card.answer);
-    }
   };
 
   const toggleVoice = () => {
     const next = !voiceOn;
     setVoiceOn(next);
     setVoiceEnabled(next);
+    if (!next) stopSpeaking();
+    else speak("Voice buddy is on. I will read the answers for you.");
   };
+
+  useEffect(() => {
+    if (flipped && voiceOn && card?.answer) {
+      speak(card.answer);
+    } else {
+      stopSpeaking();
+    }
+  }, [flipped, index]);
 
   const isWeak = ratings[index] === "hard";
 
@@ -172,15 +160,24 @@ export default function FlashcardsPage() {
             </div>
             <div className="flex items-center gap-3">
               {/* Voice toggle */}
-              <button onClick={toggleVoice}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  voiceOn
-                    ? "bg-primary-container/10 border-primary-container/30 text-primary-container"
-                    : "border-outline-variant/20 text-on-surface-variant"
-                }`}>
-                <span className="material-symbols-outlined text-sm">{voiceOn ? "volume_up" : "volume_off"}</span>
-                Voice {voiceOn ? "ON" : "OFF"}
-              </button>
+              {isSpeechSupported() && (
+                <button
+                  onClick={toggleVoice}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full border transition-all text-xs font-bold uppercase tracking-wider ${
+                    voiceOn
+                      ? "bg-primary-container/10 border-primary-container/30 text-primary-container"
+                      : "bg-surface-container-low border-outline-variant/20 text-on-surface-variant"
+                  }`}
+                >
+                  <span
+                    className="material-symbols-outlined text-sm"
+                    style={{ fontVariationSettings: voiceOn ? "'FILL' 1" : "'FILL' 0" }}
+                  >
+                    {voiceOn ? "volume_up" : "volume_off"}
+                  </span>
+                  AI Buddy {voiceOn ? "ON" : "OFF"}
+                </button>
+              )}
               <span className="font-label text-sm text-primary-container font-bold tracking-tight">
                 {mastery}% Mastery
               </span>
@@ -306,41 +303,6 @@ export default function FlashcardsPage() {
             </button>
           </div>
         </section>
-
-        {/* AI Voice Buddy */}
-        {voiceOpen && (
-          <div className="fixed bottom-8 right-8 z-50">
-            <div className="bg-surface-container-highest/40 backdrop-blur-2xl border border-outline-variant/20 rounded-2xl p-4 pr-6 flex items-center gap-4 shadow-2xl max-w-xs">
-              <div className="relative">
-                <div className="w-12 h-12 rounded-xl bg-primary-container flex items-center justify-center">
-                  <span className="material-symbols-outlined text-on-primary-container text-2xl"
-                    style={{ fontVariationSettings:"'FILL' 1" }}>smart_toy</span>
-                </div>
-                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-container-lowest flex items-center justify-center ${voiceOn ? "bg-primary-container" : "bg-surface-container-highest"}`}>
-                  <span className="w-1.5 h-1.5 bg-on-primary-container rounded-full" />
-                </div>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <p className="text-xs font-medium text-on-surface leading-tight">
-                  {voiceOn ? "Auto-reading answers aloud…" : "Voice is off — tap to enable"}
-                </p>
-                {/* Waveform */}
-                <div className="flex items-end gap-0.5 h-4">
-                  {[40, 80, 100, 50, 70, 30, 60, 90, 45, 75].map((h, i) => (
-                    <div key={i}
-                      className={`w-1 rounded-full ${voiceOn ? "bg-primary-container animate-pulse" : "bg-outline-variant/30"}`}
-                      style={{ height: `${h}%`, animationDelay: `${i * 0.1}s` }} />
-                  ))}
-                </div>
-              </div>
-              <button
-                onClick={(e) => { e.stopPropagation(); setVoiceOpen(false); }}
-                className="ml-2 text-on-surface-variant hover:text-on-surface transition-colors">
-                <span className="material-symbols-outlined text-sm">close</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Decorative gradient */}
         <div className="fixed top-0 right-0 w-1/3 h-screen bg-gradient-to-l from-primary-container/5 to-transparent pointer-events-none -z-10" />

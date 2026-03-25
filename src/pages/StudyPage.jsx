@@ -9,6 +9,7 @@ import {
   extractTextFromImage,
 } from "../utils/claudeAPI";
 import { saveStudySession } from "../utils/supabase";
+import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const TABS = [
   { id: "paste",  icon: "notes",           label: "Paste Notes" },
@@ -152,7 +153,7 @@ export default function StudyPage({ user }) {
   const [outputs, setOutputs] = useState(new Set(["summary","flashcards","quiz","plan"]));
   const [inputLang, setInputLang] = useState("English");
   const [outputLang, setOutputLang] = useState("English");
-  const [voiceBuddy, setVoiceBuddy] = useState(true);
+  const [voiceBuddy, setVoiceBuddy] = useState(getVoiceEnabled());
   const [loading, setLoading] = useState(false);
   const [loadStep, setLoadStep] = useState("");
   const [error, setError] = useState("");
@@ -278,6 +279,9 @@ export default function StudyPage({ user }) {
 
       if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your GROQ_API_KEY in the .env file.");
       setResults(generated);
+      if (voiceBuddy && generated.summary?.paragraphs?.[0]) {
+        setTimeout(() => speak("Here is your summary. " + generated.summary.paragraphs[0]), 500);
+      }
       const first = ["summary","flashcards","quiz","plan"].find((k) => generated[k]);
       if (first) setActiveResult(first);
 
@@ -322,7 +326,13 @@ export default function StudyPage({ user }) {
             <span className="material-symbols-outlined text-primary-container text-xl" style={{fontVariationSettings:"'FILL' 1"}}>bolt</span>
             <span className="text-xs font-bold font-label uppercase tracking-tighter">AI Buddy:</span>
             <span className={`text-xs font-bold uppercase tracking-widest ${voiceBuddy ? "text-primary-container" : "text-on-surface-variant"}`}>{voiceBuddy ? "ON" : "OFF"}</span>
-            <button onClick={() => setVoiceBuddy(!voiceBuddy)}
+            <button onClick={() => {
+              const next = !voiceBuddy;
+              setVoiceBuddy(next);
+              setVoiceEnabled(next);
+              if (!next) stopSpeaking();
+              else speak("AI Buddy is now on. I will read your study materials.");
+            }}
               className={`w-10 h-5 rounded-full relative transition-all duration-300 ${voiceBuddy ? "bg-primary-container/30" : "bg-surface-container-highest"}`}>
               <div className={`w-4 h-4 rounded-full absolute top-0.5 transition-all duration-300 ${voiceBuddy ? "translate-x-5 bg-primary-container" : "translate-x-0.5 bg-on-surface-variant"}`} />
             </button>
