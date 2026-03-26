@@ -546,6 +546,11 @@ export default function StudyPage({ user }) {
                 className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">timer</span>Focus Mode
               </button>
+              <button onClick={() => navigate("/socratic")}
+                className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">psychology</span>
+                Socratic Tutor
+              </button>
             </div>
           </div>
         )}

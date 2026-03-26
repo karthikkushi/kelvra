@@ -246,3 +246,68 @@ Current streak: ${streakDays} days
 Write exactly 1 short encouraging sentence, max 20 words.`;
   return await callGroq(prompt);
 }
+
+// ── SOCRATIC TUTOR ──
+export async function startSocraticSession(topic, userLevel = "student") {
+  const prompt = `You are a Socratic AI tutor. Your ONLY method is asking questions.
+Topic to explore: ${topic}
+Student level: ${userLevel}
+
+Start a Socratic dialogue about this topic.
+- Ask ONE opening question that makes the student think
+- The question should be intriguing and accessible
+- Never explain — only ask
+- Keep the question under 2 sentences
+
+Respond with ONLY the question, nothing else.`;
+
+  return await callGroq(prompt);
+}
+
+export async function continueSocraticDialogue(topic, conversationHistory, studentAnswer) {
+  const historyText = conversationHistory
+    .map((m) => `${m.role === "ai" ? "Tutor" : "Student"}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `You are a Socratic AI tutor exploring: ${topic}
+
+Conversation so far:
+${historyText}
+
+Student just said: "${studentAnswer}"
+
+Your response rules:
+1. If student is on the right track — affirm briefly, then ask a DEEPER question
+2. If student is confused — give a small hint, then ask a simpler guiding question
+3. If student gives a correct insight — celebrate it, connect it to the bigger concept, ask what it implies
+4. NEVER give the full answer directly
+5. Keep responses SHORT — max 3 sentences
+6. Always end with a question
+7. Be warm, encouraging, like a great teacher
+
+Respond naturally as the Socratic tutor.`;
+
+  return await callGroq(prompt);
+}
+
+export async function getSocraticReveal(topic, conversationHistory) {
+  const historyText = conversationHistory
+    .map((m) => `${m.role === "ai" ? "Tutor" : "Student"}: ${m.content}`)
+    .join("\n");
+
+  const prompt = `You are a Socratic AI tutor. The student has been exploring: ${topic}
+
+Conversation:
+${historyText}
+
+The student has asked to see the full explanation now.
+Write a clear, comprehensive explanation of ${topic} that:
+1. Connects to what the student already discovered in the conversation
+2. Fills in the gaps
+3. Uses simple language
+4. Ends with "Key insight: [one sentence summary]"
+
+Max 200 words.`;
+
+  return await callGroq(prompt);
+}

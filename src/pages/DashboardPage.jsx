@@ -86,6 +86,7 @@ function Sidebar({ active = "dashboard" }) {
     { id: "flashcards", icon: "style",      label: "Flashcards", path: "/flashcards" },
     { id: "quiz",       icon: "quiz",       label: "Quiz",       path: "/quiz" },
     { id: "agents",     icon: "smart_toy",  label: "AI Agents",  path: "/agents" },
+    { id: "socratic",   icon: "psychology", label: "AI Tutor",   path: "/socratic" },
     { id: "insights",   icon: "insights",   label: "Insights",   path: "/progress" },
   ];
 
