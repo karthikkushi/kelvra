@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStudySessions, getQuizScores, signOut, supabase } from "../utils/supabase";
 import { getUserXP } from "../utils/gamification";
+import ExamCountdown from "../components/ExamCountdown";
 
 function calcStreak(sessions) {
   const days = new Set(sessions.map((s) => new Date(s.created_at).toDateString()));
@@ -312,6 +313,9 @@ export default function DashboardPage({ user }) {
               </div>
             )}
           </div>
+
+          {/* Exam Countdown */}
+          <ExamCountdown user={user} />
 
           {/* ── Study Plan + Weak Spots ── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

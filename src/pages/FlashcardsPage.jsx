@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
+import MnemonicCard from "../components/MnemonicCard";
 
 const CARDS = [
   {
@@ -283,6 +284,17 @@ export default function FlashcardsPage() {
               ))}
             </div>
           </div>
+
+          {/* Mnemonic for hard cards */}
+          {flipped && ratings[index] === "hard" && (
+            <div className="mt-4 max-w-2xl mx-auto w-full px-2">
+              <MnemonicCard
+                question={card.question}
+                answer={card.answer}
+                compact={true}
+              />
+            </div>
+          )}
 
           {/* Navigation */}
           <div className="flex items-center gap-4">
