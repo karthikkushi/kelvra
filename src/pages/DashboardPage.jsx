@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getStudySessions, getQuizScores, signOut, supabase } from "../utils/supabase";
+import { getUserXP } from "../utils/gamification";
 
 function calcStreak(sessions) {
   const days = new Set(sessions.map((s) => new Date(s.created_at).toDateString()));
@@ -85,9 +86,10 @@ function Sidebar({ active = "dashboard" }) {
     { id: "study",      icon: "menu_book",  label: "Study",      path: "/study" },
     { id: "flashcards", icon: "style",      label: "Flashcards", path: "/flashcards" },
     { id: "quiz",       icon: "quiz",       label: "Quiz",       path: "/quiz" },
-    { id: "agents",     icon: "smart_toy",  label: "AI Agents",  path: "/agents" },
-    { id: "socratic",   icon: "psychology", label: "AI Tutor",   path: "/socratic" },
-    { id: "insights",   icon: "insights",   label: "Insights",   path: "/progress" },
+    { id: "agents",      icon: "smart_toy",   label: "AI Agents",   path: "/agents" },
+    { id: "socratic",    icon: "psychology",  label: "AI Tutor",    path: "/socratic" },
+    { id: "leaderboard", icon: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
+    { id: "insights",    icon: "insights",    label: "Insights",    path: "/progress" },
   ];
 
   const initials = sidebarUser?.user_metadata?.full_name
@@ -155,6 +157,7 @@ export default function DashboardPage({ user }) {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [scores, setScores] = useState([]);
+  const [totalXP, setTotalXP] = useState(null);
 
   useEffect(() => {
     if (!user?.id) {
@@ -169,6 +172,12 @@ export default function DashboardPage({ user }) {
       setScores(q || []);
       setLoading(false);
     }).catch(() => setLoading(false));
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      getUserXP(user.id).then((xp) => setTotalXP(xp.total_xp));
+    }
   }, [user?.id]);
 
   const streak        = loading ? 0  : calcStreak(sessions);
@@ -220,6 +229,12 @@ export default function DashboardPage({ user }) {
               <span className="material-symbols-outlined text-tertiary-fixed-dim text-lg"
                 style={{ fontVariationSettings:"'FILL' 1" }}>local_fire_department</span>
               <span className="text-sm font-bold text-tertiary-fixed-dim">{loading ? "…" : streak}</span>
+            </div>
+            {/* XP pill */}
+            <div className="flex items-center gap-1 bg-surface-container-highest px-3 py-1.5 rounded-full border border-outline-variant/10">
+              <span className="material-symbols-outlined text-secondary text-lg"
+                style={{ fontVariationSettings:"'FILL' 1" }}>stars</span>
+              <span className="text-sm font-bold text-secondary">{totalXP !== null ? `${totalXP} XP` : "XP"}</span>
             </div>
             {/* Language */}
             <span className="hidden sm:block material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-container transition-colors">language</span>

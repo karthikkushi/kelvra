@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
 import { saveQuizScore } from "../utils/supabase";
+import { awardXP } from "../utils/gamification";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const QUESTIONS = [
@@ -164,6 +165,9 @@ export default function QuizPage({ user }) {
           const finalScore = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
           const topicName = questions[0]?.topic || "Quiz";
           await saveQuizScore(user.id, topicName, finalScore, total);
+          const pct = Math.round((finalScore / total) * 100);
+          awardXP(user.id, "COMPLETE_QUIZ");
+          if (pct === 100) awardXP(user.id, "PERFECT_QUIZ");
         } catch (_) { /* never block UI */ }
       }
     }
