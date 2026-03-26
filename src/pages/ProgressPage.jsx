@@ -91,7 +91,7 @@ export default function ProgressPage({ user }) {
     <div className="dark min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="insights" />
 
-      <main className="md:ml-64 p-6 lg:p-10 min-h-screen">
+      <main className="md:ml-64 p-4 sm:p-6 lg:p-10 pb-24 md:pb-10 min-h-screen overflow-x-hidden">
 
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6">
@@ -342,15 +342,16 @@ export default function ProgressPage({ user }) {
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {[
-          { icon: "dashboard", path: "/dashboard" },
-          { icon: "menu_book", path: "/study" },
-          { icon: "style",     path: "/flashcards" },
-          { icon: "insights",  path: "/progress", active: true },
+          { icon: "dashboard", label: "Home",  path: "/dashboard" },
+          { icon: "menu_book", label: "Study", path: "/study" },
+          { icon: "style",     label: "Cards", path: "/flashcards" },
+          { icon: "insights",  label: "Stats", path: "/progress", active: true },
         ].map((item) => (
           <div key={item.icon} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
+            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
             <span className="material-symbols-outlined"
               style={item.active ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
           </div>
         ))}
       </nav>

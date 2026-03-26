@@ -116,7 +116,7 @@ export default function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-6 sm:p-8 shadow-2xl">
 
           {/* Google */}
           <button

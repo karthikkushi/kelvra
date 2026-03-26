@@ -147,8 +147,8 @@ export default function FlashcardsPage() {
       <main className="md:ml-64 min-h-screen bg-surface-container-lowest flex flex-col relative overflow-hidden">
 
         {/* Progress header */}
-        <header className="w-full px-8 pt-8 pb-4 flex flex-col gap-4">
-          <div className="flex justify-between items-end">
+        <header className="w-full px-4 sm:px-8 pt-6 sm:pt-8 pb-4 flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-3">
             <div>
               <span className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant">
                 Session: {card?.topic || "Flashcards"}
@@ -210,27 +210,26 @@ export default function FlashcardsPage() {
 
           {/* Flip card */}
           <div
-            className="relative w-full max-w-2xl cursor-pointer"
-            style={{ perspective: "1000px", minHeight: 280 }}
+            className="relative w-full max-w-2xl cursor-pointer min-h-[220px] sm:min-h-[280px]"
+            style={{ perspective: "1000px" }}
             onClick={flip}>
             <div
-              className="relative w-full h-full transition-transform duration-700"
+              className="relative w-full h-full transition-transform duration-700 min-h-[220px] sm:min-h-[280px]"
               style={{
                 transformStyle: "preserve-3d",
                 transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
-                minHeight: 280,
               }}>
 
               {/* FRONT */}
               <div
-                className="absolute inset-0 w-full bg-surface-container-low border border-outline-variant/15 rounded-3xl p-10 md:p-12 flex flex-col items-center justify-center shadow-2xl"
-                style={{ backfaceVisibility: "hidden", minHeight: 280 }}>
+                className="absolute inset-0 w-full bg-surface-container-low border border-outline-variant/15 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center shadow-2xl min-h-[220px] sm:min-h-[280px]"
+                style={{ backfaceVisibility: "hidden" }}>
                 <div className="absolute top-8 left-8">
                   <span className="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold uppercase tracking-widest rounded-full border border-outline-variant/20">
                     {card?.topic}
                   </span>
                 </div>
-                <h3 className="font-headline text-2xl md:text-3xl font-extrabold text-on-surface leading-tight tracking-tighter text-center mt-8">
+                <h3 className="font-headline text-xl sm:text-2xl md:text-3xl font-extrabold text-on-surface leading-tight tracking-tighter text-center mt-8">
                   {card?.question}
                 </h3>
                 <div className="absolute bottom-8 right-8 flex items-center gap-2 text-on-surface-variant opacity-40">
@@ -241,8 +240,8 @@ export default function FlashcardsPage() {
 
               {/* BACK */}
               <div
-                className="absolute inset-0 w-full bg-surface-container-high border border-primary-container/20 rounded-3xl p-10 md:p-12 flex flex-col items-center justify-center shadow-2xl"
-                style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", minHeight: 280 }}>
+                className="absolute inset-0 w-full bg-surface-container-high border border-primary-container/20 rounded-3xl p-8 md:p-12 flex flex-col items-center justify-center shadow-2xl min-h-[220px] sm:min-h-[280px]"
+                style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                 <div className="absolute top-8 left-8 flex items-center gap-2">
                   <span className="px-3 py-1 bg-primary-container/20 text-primary-container text-[10px] font-bold uppercase tracking-widest rounded-full border border-primary-container/30">
                     Answer
@@ -271,7 +270,7 @@ export default function FlashcardsPage() {
                 <button
                   key={r.id}
                   onClick={() => flipped && rate(r.id)}
-                  className={`flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 transition-all group min-h-[48px] ${
+                  className={`flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-container-low border border-outline-variant/10 transition-all group min-h-[52px] ${
                     flipped ? `${r.hover} cursor-pointer` : "opacity-40 cursor-not-allowed"
                   } ${ratings[index] === r.id ? "border-2" : ""}`}>
                   <span className={`material-symbols-outlined ${r.active} group-hover:scale-110 transition-transform`}>
@@ -290,14 +289,14 @@ export default function FlashcardsPage() {
             <button
               onClick={() => { if (index > 0) { setIndex(index - 1); setFlipped(false); } }}
               disabled={index === 0}
-              className="px-6 py-2.5 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-on-surface disabled:opacity-30 transition-all text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+              className="px-5 py-3 min-h-[48px] rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-on-surface disabled:opacity-30 transition-all text-xs sm:text-sm font-bold uppercase tracking-widest flex items-center gap-2">
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Prev
             </button>
             <span className="text-on-surface-variant text-sm">{index + 1} / {cards.length}</span>
             <button
               onClick={() => { if (index < cards.length - 1) { setFlipped(false); setTimeout(() => setIndex(index + 1), 200); } else setDone(true); }}
-              className="px-6 py-2.5 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-on-surface transition-all text-sm font-bold uppercase tracking-widest flex items-center gap-2">
+              className="px-5 py-3 min-h-[48px] rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-on-surface transition-all text-xs sm:text-sm font-bold uppercase tracking-widest flex items-center gap-2">
               Skip
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </button>
@@ -309,21 +308,21 @@ export default function FlashcardsPage() {
       </main>
 
       {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-low flex justify-around items-center py-4 border-t border-outline-variant/10 z-40"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {[
-          { icon:"dashboard", path:"/dashboard" },
-          { icon:"menu_book", path:"/study" },
-          { icon:"style",     path:"/flashcards", active:true },
-          { icon:"quiz",      path:"/quiz" },
-          { icon:"insights",  path:"/progress" },
+          { icon:"dashboard", label:"Home",    path:"/dashboard" },
+          { icon:"menu_book", label:"Study",   path:"/study" },
+          { icon:"style",     label:"Cards",   path:"/flashcards", active:true },
+          { icon:"quiz",      label:"Quiz",    path:"/quiz" },
+          { icon:"insights",  label:"Stats",   path:"/progress" },
         ].map((item) => (
-          <span key={item.icon}
-            onClick={() => navigate(item.path)}
-            className={`material-symbols-outlined cursor-pointer ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}
-            style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>
-            {item.icon}
-          </span>
+          <div key={item.icon} onClick={() => navigate(item.path)}
+            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
+            <span className="material-symbols-outlined"
+              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+          </div>
         ))}
       </nav>
 

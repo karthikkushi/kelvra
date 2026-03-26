@@ -315,14 +315,14 @@ export default function StudyPage({ user }) {
   return (
     <div className="dark min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="study" />
-      <main className="md:ml-64 min-h-screen p-8 flex flex-col">
+      <main className="md:ml-64 min-h-screen p-4 sm:p-8 pb-24 md:pb-8 flex flex-col overflow-x-hidden">
 
-        <header className="flex justify-between items-center mb-10">
+        <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 sm:mb-10">
           <div>
-            <h2 className="font-headline text-3xl font-bold tracking-tight">New Study Session</h2>
+            <h2 className="font-headline text-2xl sm:text-3xl font-bold tracking-tight">New Study Session</h2>
             <p className="text-on-surface-variant font-label text-sm mt-1">Transform your source material into architectural knowledge.</p>
           </div>
-          <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/10">
+          <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/10 self-start sm:self-auto">
             <span className="material-symbols-outlined text-primary-container text-xl" style={{fontVariationSettings:"'FILL' 1"}}>bolt</span>
             <span className="text-xs font-bold font-label uppercase tracking-tighter">AI Buddy:</span>
             <span className={`text-xs font-bold uppercase tracking-widest ${voiceBuddy ? "text-primary-container" : "text-on-surface-variant"}`}>{voiceBuddy ? "ON" : "OFF"}</span>
@@ -436,7 +436,7 @@ export default function StudyPage({ user }) {
 
               <div className="flex justify-center pt-2">
                 <button onClick={handleGenerate} disabled={loading}
-                  className="group px-12 py-5 bg-primary-container text-on-primary-fixed font-headline font-bold text-lg rounded-2xl shadow-[0_0_50px_rgba(110,231,183,0.15)] hover:shadow-[0_0_60px_rgba(110,231,183,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
+                  className="group w-full sm:w-auto px-8 sm:px-12 py-5 bg-primary-container text-on-primary-fixed font-headline font-bold text-base sm:text-lg rounded-2xl shadow-[0_0_50px_rgba(110,231,183,0.15)] hover:shadow-[0_0_60px_rgba(110,231,183,0.3)] hover:scale-[1.02] active:scale-95 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100">
                   {loading ? (
                     <><div className="w-5 h-5 border-2 border-on-primary-fixed/30 border-t-on-primary-fixed rounded-full animate-spin" /><span>{loadStep || "Generating..."}</span></>
                   ) : (
@@ -452,7 +452,7 @@ export default function StudyPage({ user }) {
                 <div className="grid grid-cols-2 gap-3">
                   {OUTPUTS.map((o) => (
                     <button key={o.id} onClick={() => toggleOutput(o.id)}
-                      className={`p-4 rounded-xl flex flex-col gap-2 items-start text-left transition-all ${
+                      className={`p-4 rounded-xl flex flex-col gap-2 items-start text-left transition-all min-h-[60px] ${
                         outputs.has(o.id) ? "bg-surface-container-low border-2 border-primary-container" : "bg-surface-container-low border border-outline-variant/15 opacity-60 hover:opacity-90 hover:border-primary-container/40"
                       }`}>
                       <span className={`material-symbols-outlined ${outputs.has(o.id) ? "text-primary-container" : "text-on-surface-variant"}`}
@@ -550,6 +550,25 @@ export default function StudyPage({ user }) {
           </div>
         )}
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        {[
+          { icon: "dashboard", label: "Home",  path: "/dashboard" },
+          { icon: "menu_book", label: "Study", path: "/study", active: true },
+          { icon: "style",     label: "Cards", path: "/flashcards" },
+          { icon: "insights",  label: "Stats", path: "/progress" },
+        ].map((item) => (
+          <div key={item.label} onClick={() => navigate(item.path)}
+            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
+            <span className="material-symbols-outlined"
+              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+          </div>
+        ))}
+      </nav>
+
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>
   );

@@ -91,7 +91,7 @@ export default function FocusPage() {
       </div>
 
       {/* Top nav */}
-      <header className="w-full flex justify-between items-center px-10 py-8 z-50">
+      <header className="w-full flex justify-between items-center px-4 sm:px-10 py-5 sm:py-8 z-50">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-primary-container animate-pulse shadow-[0_0_10px_rgba(110,231,183,0.5)]" />
           <span className="text-on-surface-variant font-label text-sm uppercase tracking-[0.2em]">
@@ -119,7 +119,7 @@ export default function FocusPage() {
       <main className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-6 relative gap-10">
 
         {/* Timer ring */}
-        <div className="relative flex items-center justify-center w-[340px] h-[340px] md:w-[440px] md:h-[440px]">
+        <div className="relative flex items-center justify-center w-[290px] h-[290px] sm:w-[340px] sm:h-[340px] md:w-[440px] md:h-[440px]">
           <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
             {/* Background ring */}
             <circle className="text-surface-variant/20" cx="50" cy="50" fill="transparent"
@@ -197,10 +197,10 @@ export default function FocusPage() {
       </main>
 
       {/* Bottom panel */}
-      <footer className="w-full flex flex-col items-center gap-8 pb-12 px-6 z-50">
+      <footer className="w-full flex flex-col items-center gap-6 pb-10 sm:pb-12 px-4 sm:px-6 z-50">
 
         {/* Ambient sound panel */}
-        <div className="bg-surface-container-highest/40 backdrop-blur-[20px] px-8 py-5 rounded-[2rem] flex flex-wrap items-center gap-8 border border-outline-variant/10 shadow-xl">
+        <div className="bg-surface-container-highest/40 backdrop-blur-[20px] px-4 sm:px-8 py-5 rounded-[2rem] flex flex-col sm:flex-row sm:flex-wrap items-center gap-6 sm:gap-8 border border-outline-variant/10 shadow-xl w-full sm:w-auto">
           <div className="flex items-center gap-4">
             {SOUNDS.map((s) => (
               <button key={s.id} onClick={() => setActiveSound(s.id)}
@@ -223,7 +223,7 @@ export default function FocusPage() {
           <div className="h-8 w-px bg-outline-variant/20 hidden md:block" />
 
           {/* Volume slider */}
-          <div className="flex items-center gap-3 w-44">
+          <div className="flex items-center gap-3 w-full sm:w-44">
             <span className="material-symbols-outlined text-on-surface-variant text-sm">volume_down</span>
             <div className="relative flex-1 h-1 bg-surface-container-highest rounded-full overflow-hidden">
               <div className="absolute left-0 top-0 h-full bg-primary-container shadow-[0_0_8px_rgba(110,231,183,0.4)] transition-all"
@@ -238,7 +238,7 @@ export default function FocusPage() {
 
         {/* Motivational quote */}
         <div className="text-center max-w-lg">
-          <p className="font-body italic text-on-surface-variant text-lg leading-relaxed opacity-70">
+          <p className="font-body italic text-on-surface-variant text-base sm:text-lg leading-relaxed opacity-70">
             "{quote}"
           </p>
         </div>
