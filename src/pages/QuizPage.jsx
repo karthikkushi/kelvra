@@ -166,8 +166,8 @@ export default function QuizPage({ user }) {
           const topicName = questions[0]?.topic || "Quiz";
           await saveQuizScore(user.id, topicName, finalScore, total);
           const pct = Math.round((finalScore / total) * 100);
-          awardXP(user.id, "COMPLETE_QUIZ");
-          if (pct === 100) awardXP(user.id, "PERFECT_QUIZ");
+          awardXP(user.id, "COMPLETE_QUIZ", {}, user);
+          if (pct === 100) awardXP(user.id, "PERFECT_QUIZ", {}, user);
         } catch (_) { /* never block UI */ }
       }
     }
