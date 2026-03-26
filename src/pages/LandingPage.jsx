@@ -1,329 +1,395 @@
 import { useNavigate } from "react-router-dom";
 
+const STATS = [
+  { value: "10,000+", label: "Students" },
+  { value: "50+",     label: "Languages" },
+  { value: "4",       label: "AI Agents" },
+  { value: "Free",    label: "Forever plan" },
+];
+
+const HOW_IT_WORKS = [
+  {
+    step: "01",
+    icon: "upload_file",
+    title: "Add your material",
+    desc: "Paste notes, type a topic, upload a PDF or photo of your textbook. Any format works.",
+  },
+  {
+    step: "02",
+    icon: "auto_awesome",
+    title: "AI builds your study kit",
+    desc: "In seconds, Kelvra generates flashcards, a quiz, a summary and a personalized 5-day study plan.",
+  },
+  {
+    step: "03",
+    icon: "trending_up",
+    title: "Study smarter every day",
+    desc: "Your AI coach tracks progress, finds weak spots and tells you exactly what to study next.",
+  },
+];
+
+const FEATURES = [
+  {
+    icon: "style",
+    title: "AI Flashcards",
+    desc: "Auto-generated from any content. Flip, rate, repeat. Spaced repetition built in.",
+    color: "text-primary-container",
+    bg: "bg-primary-container/10",
+  },
+  {
+    icon: "quiz",
+    title: "Adaptive Quiz",
+    desc: "MCQ quizzes that get harder as you improve. Instant explanations after every answer.",
+    color: "text-secondary",
+    bg: "bg-secondary-container/20",
+  },
+  {
+    icon: "summarize",
+    title: "Smart Summary",
+    desc: "Dense notes distilled into clear paragraphs and key bullet points in seconds.",
+    color: "text-tertiary-fixed-dim",
+    bg: "bg-tertiary-container/20",
+  },
+  {
+    icon: "calendar_today",
+    title: "Study Plan",
+    desc: "5-day personalized plan built from your material. Day-by-day tasks and time estimates.",
+    color: "text-primary-container",
+    bg: "bg-primary-container/10",
+  },
+  {
+    icon: "record_voice_over",
+    title: "Voice Buddy",
+    desc: "AI reads your flashcards and quiz questions aloud. Study hands-free, eyes-free.",
+    color: "text-secondary",
+    bg: "bg-secondary-container/20",
+  },
+  {
+    icon: "translate",
+    title: "10+ Languages",
+    desc: "Generate study materials in Hindi, Tamil, Arabic, Spanish and more. Study in your language.",
+    color: "text-tertiary-fixed-dim",
+    bg: "bg-tertiary-container/20",
+  },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Priya S.",
+    role: "NEET Aspirant, Chennai",
+    avatar: "P",
+    avatarBg: "bg-primary-container/20 text-primary-container",
+    text: "I used to spend 3 hours making flashcards manually. Kelvra does it in 10 seconds. My Biology scores went from 65% to 89% in one month.",
+    stars: 5,
+  },
+  {
+    name: "Arjun M.",
+    role: "B.Tech CSE, Bangalore",
+    avatar: "A",
+    avatarBg: "bg-secondary-container/30 text-secondary",
+    text: "The AI quiz is scary good. It found my exact weak spots in Data Structures and kept drilling me on them. Cleared my semester with 9.1 CGPA.",
+    stars: 5,
+  },
+  {
+    name: "Fatima K.",
+    role: "CA Intermediate Student",
+    avatar: "F",
+    avatarBg: "bg-tertiary-container/20 text-tertiary-fixed-dim",
+    text: "I upload my CA study material as PDF and get a full study kit in seconds. The voice buddy reads everything aloud while I cook. Life changing.",
+    stars: 5,
+  },
+];
+
+const FAQS = [
+  {
+    q: "Is Kelvra really free?",
+    a: "Yes. The core features — AI flashcards, quiz, summary, study plan — are completely free. No credit card needed.",
+  },
+  {
+    q: "What subjects does Kelvra support?",
+    a: "All of them. NEET, JEE, CA, UPSC, engineering, law, languages — if you can paste or upload the content, Kelvra can study it.",
+  },
+  {
+    q: "How is Kelvra different from Anki or Quizlet?",
+    a: "Those tools require you to manually create cards. Kelvra generates everything from your own material automatically using AI — flashcards, quiz, summary and study plan all at once.",
+  },
+  {
+    q: "Does it work in Hindi and Tamil?",
+    a: "Yes. You can input content in any language and get study materials output in Hindi, Tamil, Arabic, Spanish and 7 more languages.",
+  },
+];
+
 export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
     <div className="dark min-h-screen bg-background text-on-background font-body overflow-x-hidden">
 
-      {/* Background glows */}
+      {/* ── Background blobs ── */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary-container/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-secondary-container/5 rounded-full blur-[120px]" />
+        <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-primary-container/5 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary-container/5 rounded-full blur-[120px]" />
       </div>
 
-      {/* NAV */}
-      <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/15">
-        <div className="flex justify-between items-center px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-8">
-            <span className="text-xl font-bold text-primary-container tracking-tighter font-headline">Kelvra</span>
-            <div className="hidden md:flex gap-6">
-              {["Features", "How it works", "Languages"].map((l) => (
-                <a key={l} href={`#${l.toLowerCase().replace(/ /g,"-")}`}
-                  className="text-on-surface-variant hover:text-on-surface transition-colors font-headline font-bold tracking-tight text-sm">{l}</a>
-              ))}
-            </div>
-          </div>
+      {/* ── NAVBAR ── */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/10">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/auth")}
-              className="px-6 py-2 rounded-lg border border-outline-variant/20 text-on-surface-variant hover:bg-surface-container-highest transition-all font-semibold text-sm">Try Free</button>
-            <button onClick={() => navigate("/auth")}
-              className="px-6 py-2 rounded-lg bg-primary-container text-on-primary-container font-bold text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg">Sign Up</button>
+            <div className="w-8 h-8 bg-primary-container rounded-lg flex items-center justify-center">
+              <span className="material-symbols-outlined text-on-primary-container text-sm"
+                style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            </div>
+            <span className="font-headline font-bold text-lg tracking-tighter text-on-surface">Kelvra</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate("/auth")}
+              className="hidden sm:block text-on-surface-variant hover:text-on-surface transition-colors text-sm font-medium">
+              Sign in
+            </button>
+            <button
+              onClick={() => navigate("/auth")}
+              className="bg-primary-container text-on-primary-container font-bold px-5 py-2.5 rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+              Get Started Free
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section className="pt-24 min-h-screen">
-        <div className="px-4 sm:px-6 md:px-12 lg:px-24 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center max-w-7xl mx-auto">
-          <div className="lg:col-span-7 z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container/30 border border-secondary-container/50 mb-6">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-primary-fixed">V1.0 Intelligent Engine</span>
-            </div>
-            <h1 className="font-headline text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter leading-tight text-on-surface mb-6">
-              The AI that learns how{" "}
-              <span className="text-primary-container">YOU</span>{" "}
-              learn
-            </h1>
-            <p className="font-body text-lg md:text-xl text-on-surface-variant max-w-xl mb-10 leading-relaxed">
-              Paste notes. Upload PDFs. Type a topic. Get flashcards, quizzes, summaries — in any language. Your personal AI learning intelligence.
-            </p>
+      {/* ── HERO ── */}
+      <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto text-center">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-2 bg-primary-container/10 border border-primary-container/20 px-4 py-2 rounded-full mb-8">
+          <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
+          <span className="text-primary-container text-xs font-bold uppercase tracking-widest">AI-Powered Study Companion</span>
+        </div>
 
-            {/* Stats bar */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-8 px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/10 w-full sm:w-fit">
-              {["10,000+ students", "50+ languages", "Free forever"].map((s, i) => (
-                <span key={s} className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
-                  {i > 0 && <span className="w-1 h-1 rounded-full bg-outline-variant/40" />}
-                  <span className="text-on-surface font-bold">{s.split(" ")[0]}</span>{" "}
-                  {s.split(" ").slice(1).join(" ")}
-                </span>
-              ))}
-            </div>
+        <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-on-surface leading-[1.05] mb-6">
+          Study Smarter.<br />
+          <span className="text-primary-container">Not Harder.</span>
+        </h1>
 
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <button onClick={() => navigate("/auth")}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-primary-container text-on-primary-container font-bold text-base flex items-center justify-center gap-2 hover:scale-[1.05] transition-transform shadow-2xl shadow-primary-container/20">
-                Get Started Free
-                <span className="material-symbols-outlined text-lg">arrow_forward</span>
-              </button>
-              <button onClick={() => navigate("/dashboard")}
-                className="w-full sm:w-auto px-8 py-4 rounded-xl border border-outline-variant/30 text-on-surface font-semibold text-base hover:bg-surface-container-low transition-all text-center">
-                View Demo
-              </button>
+        <p className="text-on-surface-variant text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+          Paste your notes or upload a PDF. Kelvra's AI instantly creates flashcards, a quiz, a summary and a personalized study plan — in any language.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <button
+            onClick={() => navigate("/auth")}
+            className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary-container text-on-primary-container font-headline font-bold px-8 py-4 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_40px_rgba(110,231,183,0.2)]">
+            Start Studying Free
+            <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+          </button>
+          <button
+            onClick={() => navigate("/auth")}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 border border-outline-variant/30 text-on-surface-variant px-8 py-4 rounded-2xl text-base hover:bg-surface-container-low transition-all font-medium">
+            <span className="material-symbols-outlined text-sm">play_circle</span>
+            See how it works
+          </button>
+        </div>
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+          {STATS.map((s) => (
+            <div key={s.label} className="bg-surface-container-low border border-outline-variant/10 rounded-xl px-4 py-4 text-center">
+              <div className="font-headline text-2xl font-extrabold text-primary-container">{s.value}</div>
+              <div className="text-xs text-on-surface-variant uppercase tracking-widest mt-1">{s.label}</div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="flex -space-x-3">
-                {["bg-primary-container","bg-secondary-container","bg-tertiary-container"].map((c,i) => (
-                  <div key={i} className={`w-10 h-10 rounded-full ${c} border-2 border-background flex items-center justify-center text-xs font-bold text-on-primary-fixed`}>
-                    {["A","B","C"][i]}
-                  </div>
-                ))}
+          ))}
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <section className="py-20 px-6 max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">How it works</span>
+          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
+            From notes to mastery<br />in 3 steps
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+          {/* Connector line on desktop */}
+          <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary-container/30 to-transparent" />
+
+          {HOW_IT_WORKS.map((step, i) => (
+            <div key={i} className="relative bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8 text-center hover:border-primary-container/20 transition-all group">
+              <div className="absolute -top-3 left-8 bg-primary-container/10 border border-primary-container/20 px-3 py-1 rounded-full">
+                <span className="text-primary-container text-xs font-bold">{step.step}</span>
               </div>
-              <p className="text-sm font-medium text-on-surface-variant">
-                Joined by <span className="text-on-surface font-bold">12,000+</span> life-long learners
+              <div className="w-14 h-14 bg-surface-container-highest rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:bg-primary-container/10 transition-colors">
+                <span className="material-symbols-outlined text-primary-container text-2xl">{step.icon}</span>
+              </div>
+              <h3 className="font-headline text-xl font-bold text-on-surface mb-3">{step.title}</h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FEATURES GRID ── */}
+      <section className="py-20 px-6 max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Everything you need</span>
+          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
+            One app. Every study tool.<br />Powered by AI.
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {FEATURES.map((f, i) => (
+            <div key={i}
+              className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-7 hover:border-primary-container/20 hover:translate-y-[-2px] transition-all group">
+              <div className={`w-12 h-12 ${f.bg} rounded-xl flex items-center justify-center mb-5`}>
+                <span className={`material-symbols-outlined ${f.color} text-2xl`}
+                  style={{ fontVariationSettings: "'FILL' 1" }}>{f.icon}</span>
+              </div>
+              <h3 className="font-headline text-lg font-bold text-on-surface mb-2">{f.title}</h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed">{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── DEMO SECTION ── */}
+      <section className="py-20 px-6 max-w-6xl mx-auto">
+        <div className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-8 md:p-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-primary-container/5 blur-[100px] rounded-full" />
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Live example</span>
+              <h2 className="font-headline text-3xl font-extrabold tracking-tighter text-on-surface mt-3 mb-4">
+                Try it on<br />"Photosynthesis"
+              </h2>
+              <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
+                We typed "Photosynthesis" into Kelvra. In 8 seconds it generated 8 flashcards, 6 quiz questions, a 3-paragraph summary, and a 5-day study plan. Here's what it made:
               </p>
+              <button onClick={() => navigate("/auth")}
+                className="bg-primary-container text-on-primary-container font-bold px-6 py-3 rounded-xl hover:scale-[1.02] transition-all text-sm">
+                Generate your own →
+              </button>
             </div>
-          </div>
-
-          {/* Dashboard preview */}
-          <div className="lg:col-span-5 relative">
-            <div className="relative z-10 bg-surface-container-highest/40 backdrop-blur-[20px] border border-outline-variant/20 rounded-3xl p-4 shadow-[0_32px_64px_rgba(0,0,0,0.4)] rotate-3 hover:rotate-0 transition-transform duration-700">
-              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden aspect-[4/3] flex flex-col">
-                <div className="h-10 border-b border-outline-variant/10 flex items-center px-4 gap-2">
-                  <div className="flex gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-full bg-error/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-tertiary/40" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-primary/40" />
-                  </div>
-                  <div className="mx-auto bg-surface-container-high px-4 py-1 rounded-md text-[10px] text-on-surface-variant font-mono">kelvra.ai/dashboard</div>
+            {/* Sample output preview */}
+            <div className="space-y-3">
+              <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-primary-container/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-primary-container text-sm">style</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary-container">Flashcard 1 of 8</span>
                 </div>
-                <div className="flex-1 p-6 flex flex-col gap-4">
-                  <div className="h-6 w-3/4 bg-surface-container-highest rounded-md" />
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="h-24 bg-surface-container-low rounded-xl border border-outline-variant/10 p-4">
-                      <div className="w-8 h-8 rounded-lg bg-primary-container/10 flex items-center justify-center mb-2">
-                        <span className="material-symbols-outlined text-primary-container text-sm">style</span>
-                      </div>
-                      <div className="h-2 w-full bg-surface-container-highest rounded" />
+                <p className="text-sm font-medium text-on-surface">What is the primary site of photosynthesis in a plant cell?</p>
+                <div className="mt-2 pt-2 border-t border-outline-variant/10">
+                  <p className="text-xs text-on-surface-variant">The chloroplast — specifically the thylakoid membranes for light reactions and the stroma for the Calvin cycle.</p>
+                </div>
+              </div>
+              <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-secondary text-sm">quiz</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Quiz Question</span>
+                </div>
+                <p className="text-sm font-medium text-on-surface">Which molecule is the direct energy source for the Calvin cycle?</p>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {["A) Glucose", "B) ATP + NADPH", "C) CO₂", "D) H₂O"].map((o, i) => (
+                    <div key={i} className={`text-xs px-3 py-2 rounded-lg ${i === 1 ? "bg-primary-container/20 text-primary-container border border-primary-container/30" : "bg-surface-container-low text-on-surface-variant"}`}>
+                      {o}
                     </div>
-                    <div className="h-24 bg-surface-container-low rounded-xl border border-outline-variant/10 p-4">
-                      <div className="w-8 h-8 rounded-lg bg-tertiary/10 flex items-center justify-center mb-2">
-                        <span className="material-symbols-outlined text-tertiary text-sm">quiz</span>
-                      </div>
-                      <div className="h-2 w-full bg-surface-container-highest rounded" />
-                    </div>
-                  </div>
-                  <div className="h-32 bg-primary-container/5 rounded-xl border border-primary-container/10 p-4 relative overflow-hidden">
-                    <div className="absolute right-[-10px] top-[-10px] w-24 h-24 bg-primary-container/20 blur-3xl rounded-full" />
-                    <div className="text-[10px] text-primary-container font-bold uppercase mb-2">AI Insights</div>
-                    <div className="space-y-2">
-                      <div className="h-1.5 w-full bg-primary-container/20 rounded" />
-                      <div className="h-1.5 w-5/6 bg-primary-container/20 rounded" />
-                      <div className="h-1.5 w-4/6 bg-primary-container/20 rounded" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="absolute -top-12 -right-12 w-64 h-64 bg-primary-container/10 blur-[100px] rounded-full" />
-            <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-secondary/10 blur-[100px] rounded-full" />
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" className="px-4 sm:px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="font-headline text-3xl md:text-5xl font-bold text-on-surface mb-4">How Kelvra works</h2>
-            <p className="text-on-surface-variant text-lg max-w-xl mx-auto">From raw notes to a complete study kit in seconds.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { step: "01", icon: "edit_note",     title: "Add your content",          desc: "Paste your lecture notes, type any topic, upload a PDF or image — in any language." },
-              { step: "02", icon: "auto_awesome",  title: "AI generates your kit",     desc: "Kelvra instantly creates flashcards, a multiple-choice quiz, a summary, and a 5-day study plan." },
-              { step: "03", icon: "school",        title: "Study smarter",             desc: "Use spaced repetition, voice buddy read-aloud, and focus mode to lock in knowledge faster." },
-            ].map((s) => (
-              <div key={s.step} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8 flex flex-col gap-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="font-headline text-4xl font-extrabold text-primary-container/20">{s.step}</span>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-primary-container/10 flex items-center justify-center">
-                  <span className="material-symbols-outlined text-primary-container text-2xl">{s.icon}</span>
-                </div>
-                <h3 className="font-headline text-xl font-bold text-on-surface">{s.title}</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed">{s.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES BENTO */}
-      <section id="features" className="px-4 sm:px-6 md:px-12 lg:px-24 py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="max-w-4xl mb-16">
-            <h2 className="font-headline text-3xl md:text-5xl font-bold text-on-surface mb-4">Precision tools for the modern mind</h2>
-            <p className="text-on-surface-variant text-lg">Engineered to adapt to your cognitive rhythm.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-8 bg-surface-container-low border border-outline-variant/15 rounded-3xl p-8 flex flex-col justify-between hover:bg-surface-container transition-colors relative overflow-hidden group">
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-2xl bg-primary-container/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-outlined text-primary-container text-2xl">settings_voice</span>
-                </div>
-                <h3 className="font-headline text-2xl font-bold mb-3">AI Voice Buddy</h3>
-                <p className="text-on-surface-variant max-w-md leading-relaxed">Reads flashcard answers and quiz questions aloud using your browser's speech engine. Like a real tutor, not just a tool.</p>
-              </div>
-              <div className="mt-8 flex gap-2">
-                <div className="h-1 w-8 bg-primary-container rounded-full" />
-                <div className="h-1 w-2 bg-primary-container/30 rounded-full" />
-                <div className="h-1 w-2 bg-primary-container/30 rounded-full" />
-              </div>
-              <div className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 w-64 h-64 bg-primary-container/5 blur-3xl" />
-            </div>
-            <div className="md:col-span-4 bg-surface-container-low border border-outline-variant/15 rounded-3xl p-8 flex flex-col justify-between group">
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center mb-6 group-hover:rotate-12 transition-transform">
-                  <span className="material-symbols-outlined text-tertiary text-2xl">analytics</span>
-                </div>
-                <h3 className="font-headline text-2xl font-bold mb-3">Weak Spot Detector</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed">Tracks every wrong answer and shows which topics need more attention.</p>
-              </div>
-              <div className="mt-8 pt-6 border-t border-outline-variant/10">
-                <div className="flex items-end gap-1 h-12">
-                  {[40,70,30,90,55,75].map((h,i) => (
-                    <div key={i} className={`w-full rounded-t ${i % 2 === 1 ? "bg-primary-container" : "bg-surface-container-highest"}`} style={{height:`${h}%`}} />
                   ))}
                 </div>
               </div>
             </div>
-            <div className="md:col-span-4 bg-surface-container-low border border-outline-variant/15 rounded-3xl p-8 flex flex-col justify-between group">
-              <div>
-                <div className="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6 group-hover:scale-95 transition-transform">
-                  <span className="material-symbols-outlined text-secondary text-2xl">translate</span>
-                </div>
-                <h3 className="font-headline text-2xl font-bold mb-3">Any Language</h3>
-                <p className="text-on-surface-variant text-sm leading-relaxed">Upload in Tamil, Hindi, Arabic, Spanish — get flashcards back in any language.</p>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-8">
-                {["हिन्दी","தமிழ்","العربية","Español","Français","日本語"].map((l) => (
-                  <span key={l} className="px-3 py-1 bg-surface-container-highest rounded-full text-[10px] font-bold text-on-surface-variant">{l}</span>
-                ))}
-              </div>
-            </div>
-            <div className="md:col-span-8 bg-surface-container-low border border-outline-variant/15 rounded-3xl p-8 flex items-center gap-10 group overflow-hidden">
-              <div className="flex-1">
-                <div className="w-12 h-12 rounded-2xl bg-on-background/10 flex items-center justify-center mb-6">
-                  <span className="material-symbols-outlined text-on-surface text-2xl">center_focus_strong</span>
-                </div>
-                <h3 className="font-headline text-2xl font-bold mb-3">Focus Mode</h3>
-                <p className="text-on-surface-variant leading-relaxed">Pomodoro timer + ambient sounds (rain, cafe, library, lo-fi). Zero distractions, deep work instantly.</p>
-              </div>
-              <div className="hidden md:flex w-1/3 items-center justify-center">
-                <div className="aspect-square w-32 bg-surface-container-highest rounded-full border-4 border-outline-variant/10 flex items-center justify-center relative">
-                  <div className="absolute inset-2 border-2 border-primary-container/20 rounded-full border-dashed animate-spin" style={{animationDuration:"10s"}} />
-                  <span className="material-symbols-outlined text-primary-container text-4xl">timer</span>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* DEMO SECTION */}
-      <section className="px-4 sm:px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-headline text-3xl md:text-4xl font-bold text-on-surface mb-3">See what Kelvra generates</h2>
-            <p className="text-on-surface-variant">A sample output from the topic: "Photosynthesis"</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {/* Sample flashcard */}
-            <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-primary-container text-sm" style={{fontVariationSettings:"'FILL' 1"}}>style</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Flashcard example</span>
-              </div>
-              <p className="font-headline text-lg font-bold text-on-surface mb-3">What is the primary pigment in photosynthesis?</p>
-              <div className="bg-surface-container-high border border-primary-container/20 rounded-xl p-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-primary-container block mb-1">Answer</span>
-                <p className="text-on-surface text-sm">Chlorophyll — specifically chlorophyll-a absorbs red and blue light and converts it to chemical energy via the light-dependent reactions.</p>
-              </div>
-            </div>
-            {/* Sample quiz question */}
-            <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="material-symbols-outlined text-secondary text-sm" style={{fontVariationSettings:"'FILL' 1"}}>quiz</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Quiz question example</span>
-              </div>
-              <p className="font-headline text-base font-bold text-on-surface mb-4">Where do the light-dependent reactions of photosynthesis occur?</p>
-              <div className="space-y-2">
-                {["A) Stroma of the chloroplast","B) Thylakoid membrane ✓","C) Cytoplasm","D) Mitochondria"].map((o, i) => (
-                  <div key={i} className={`px-4 py-2 rounded-lg text-sm ${i === 1 ? "bg-primary-container/10 border border-primary-container/40 text-primary-container font-bold" : "bg-surface-container-highest/40 text-on-surface-variant"}`}>
-                    {o}
-                  </div>
+      {/* ── TESTIMONIALS ── */}
+      <section className="py-20 px-6 max-w-6xl mx-auto">
+        <div className="text-center mb-14">
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Student stories</span>
+          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
+            Students love Kelvra
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {TESTIMONIALS.map((t, i) => (
+            <div key={i} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-7 hover:border-primary-container/20 transition-all">
+              {/* Stars */}
+              <div className="flex gap-1 mb-4">
+                {Array.from({ length: t.stars }).map((_, j) => (
+                  <span key={j} className="material-symbols-outlined text-primary-container text-sm"
+                    style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section className="px-4 sm:px-6 md:px-12 lg:px-24 py-24">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="font-headline text-3xl md:text-4xl font-bold text-on-surface mb-3">Students love Kelvra</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { name: "Priya S.", role: "MBBS Student", quote: "I used to spend 3 hours making flashcards. Now it takes 30 seconds. My exam prep is completely transformed." },
-              { name: "James O.", role: "Computer Science",  quote: "The quiz generation is incredible. It asks questions I never thought to ask myself — and that's exactly what exams do." },
-              { name: "Sofia M.", role: "Law School",  quote: "I study in Spanish but my notes are in English. The language feature is genuinely magic. Nothing else does this." },
-            ].map((t) => (
-              <div key={t.name} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({length: 5}).map((_, i) => (
-                    <span key={i} className="text-primary-container text-sm">★</span>
-                  ))}
+              <p className="text-on-surface-variant text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full ${t.avatarBg} flex items-center justify-center font-bold text-sm`}>
+                  {t.avatar}
                 </div>
-                <p className="text-on-surface-variant text-sm leading-relaxed mb-6 italic">"{t.quote}"</p>
                 <div>
-                  <p className="font-bold text-on-surface text-sm">{t.name}</p>
-                  <p className="text-on-surface-variant text-xs">{t.role}</p>
+                  <p className="font-bold text-sm text-on-surface">{t.name}</p>
+                  <p className="text-xs text-on-surface-variant">{t.role}</p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-6 py-24 text-center relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/5 blur-[120px] rounded-full -z-10" />
-        <div className="max-w-2xl mx-auto">
-          <h2 className="font-headline text-4xl md:text-5xl font-bold text-on-surface mb-8">Ready to upgrade your intellect?</h2>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button onClick={() => navigate("/auth")}
-              className="w-full sm:w-auto px-10 py-5 rounded-2xl bg-primary-container text-on-primary-container font-extrabold text-xl shadow-xl shadow-primary-container/20 hover:scale-[1.03] transition-transform">
-              Create My Free Account
+      {/* ── FAQ ── */}
+      <section className="py-20 px-6 max-w-3xl mx-auto">
+        <div className="text-center mb-14">
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">FAQ</span>
+          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
+            Common questions
+          </h2>
+        </div>
+        <div className="space-y-4">
+          {FAQS.map((faq, i) => (
+            <div key={i} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 hover:border-primary-container/20 transition-all">
+              <h3 className="font-headline font-bold text-on-surface mb-2">{faq.q}</h3>
+              <p className="text-on-surface-variant text-sm leading-relaxed">{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ── */}
+      <section className="py-24 px-6 max-w-4xl mx-auto text-center">
+        <div className="bg-surface-container-low border border-primary-container/10 rounded-3xl p-12 md:p-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary-container/5 to-transparent pointer-events-none" />
+          <div className="relative z-10">
+            <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
+              Ready to study smarter?
+            </h2>
+            <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto">
+              Join students who are already using AI to study faster, retain more and score higher.
+            </p>
+            <button
+              onClick={() => navigate("/auth")}
+              className="group inline-flex items-center gap-3 bg-primary-container text-on-primary-container font-headline font-bold px-10 py-5 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_50px_rgba(110,231,183,0.2)]">
+              Start for free — no credit card
+              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
             </button>
-            <p className="text-on-surface-variant text-sm font-medium">No credit card required.</p>
+            <p className="text-on-surface-variant/50 text-xs mt-4 uppercase tracking-widest">Free forever · No credit card · Setup in 30 seconds</p>
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="w-full py-8 border-t border-outline-variant/10 bg-background">
-        <div className="flex flex-col items-center gap-4 px-8">
-          <div className="flex flex-wrap justify-center gap-8 mb-2">
-            {["Privacy Policy","Terms of Service","Contact Support"].map((l) => (
-              <a key={l} href="#" className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary-container transition-colors">{l}</a>
-            ))}
+      {/* ── FOOTER ── */}
+      <footer className="border-t border-outline-variant/10 py-10 px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-primary-container rounded-lg flex items-center justify-center">
+              <span className="material-symbols-outlined text-on-primary-container text-xs"
+                style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+            </div>
+            <span className="font-headline font-bold text-on-surface tracking-tighter">Kelvra</span>
           </div>
-          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant text-center">© 2025 Kelvra. Intelligence that grows with you.</p>
+          <p className="text-xs text-on-surface-variant">© 2025 Kelvra. Built with ❤️ for students everywhere.</p>
+          <div className="flex gap-6 text-xs text-on-surface-variant">
+            <a href="#" className="hover:text-primary-container transition-colors">Privacy</a>
+            <a href="#" className="hover:text-primary-container transition-colors">Terms</a>
+            <a href="#" className="hover:text-primary-container transition-colors">Contact</a>
+          </div>
         </div>
       </footer>
 
