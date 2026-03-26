@@ -82,7 +82,7 @@ export default function FocusPage() {
   const circumference = 289;
 
   return (
-    <div className="dark min-h-screen bg-surface-container-lowest text-on-surface font-body flex flex-col items-center justify-between relative overflow-hidden">
+    <div className="min-h-screen bg-surface-container-lowest text-on-surface font-body flex flex-col items-center justify-between relative overflow-hidden">
 
       {/* Background glows */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">

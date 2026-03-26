@@ -98,7 +98,7 @@ export default function SocraticPage({ user }) {
   };
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="socratic" />
       <main className="md:ml-64 min-h-screen flex flex-col">
 

@@ -105,7 +105,7 @@ export default function FlashcardsPage() {
     const hardCount = Object.values(ratings).filter((r) => r === "hard").length;
     const easyCount = Object.values(ratings).filter((r) => r === "easy").length;
     return (
-      <div className="dark min-h-screen bg-background text-on-surface font-body flex items-center justify-center">
+      <div className="min-h-screen bg-background text-on-surface font-body flex items-center justify-center">
         <Sidebar active="flashcards" />
         <div className="md:ml-64 flex-1 flex items-center justify-center p-8">
           <div className="max-w-md w-full bg-surface-container-low border border-outline-variant/10 rounded-3xl p-12 text-center">
@@ -142,7 +142,7 @@ export default function FlashcardsPage() {
   }
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="flashcards" />
 
       <main className="md:ml-64 min-h-screen bg-surface-container-lowest flex flex-col relative overflow-hidden">

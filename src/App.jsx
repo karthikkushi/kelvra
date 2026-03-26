@@ -17,6 +17,7 @@ import AgentsPage    from "./pages/AgentsPage";
 import SocraticPage  from "./pages/SocraticPage";
 import SharedKitPage from "./pages/SharedKitPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import InstallPrompt from "./components/InstallPrompt";
 
 function Protected({ user, children }) {
   if (user === undefined) {
@@ -53,6 +54,12 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      {/* Offline banner */}
+      {typeof window !== "undefined" && !navigator.onLine && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-error-container/90 text-error text-center py-2 text-xs font-bold uppercase tracking-widest">
+          You are offline — saved content still available
+        </div>
+      )}
       <Routes>
         <Route path="/"     element={<LandingPage />} />
         <Route path="/auth"  element={user ? (homeRedirect ?? <Navigate to="/dashboard" replace />) : <AuthPage />} />
@@ -70,6 +77,7 @@ export default function App() {
         <Route path="/leaderboard"    element={<Protected user={user}><LeaderboardPage user={user} /></Protected>} />
         <Route path="*"           element={<Navigate to="/" replace />} />
       </Routes>
+      <InstallPrompt />
     </BrowserRouter>
   );
 }

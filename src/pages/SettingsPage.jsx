@@ -34,7 +34,7 @@ export default function SettingsPage({ user }) {
     : user?.email?.[0]?.toUpperCase() ?? "K";
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="settings" />
 
       <main className="md:ml-64 min-h-screen pb-24 md:pb-12">

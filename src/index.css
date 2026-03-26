@@ -36,3 +36,27 @@ body {
   background: #6ee7b7;
   color: #002115;
 }
+
+/* Light mode overrides */
+.light {
+  --color-background: #f8f9fc;
+  --color-surface-container-low: #ffffff;
+  --color-surface-container-high: #f0f2f8;
+  --color-surface-container-highest: #e8eaf2;
+  --color-on-surface: #1a1c25;
+  --color-on-surface-variant: #44475a;
+  --color-outline-variant: #c8cad8;
+}
+
+.light body {
+  background-color: #f8f9fc;
+  color: #1a1c25;
+}
+
+.light ::-webkit-scrollbar-track { background: #f0f2f8; }
+.light ::-webkit-scrollbar-thumb { background: #c8cad8; }
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+}

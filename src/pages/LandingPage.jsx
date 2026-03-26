@@ -123,7 +123,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="dark min-h-screen bg-background text-on-background font-body overflow-x-hidden">
+    <div className="min-h-screen bg-background text-on-background font-body overflow-x-hidden">
 
       {/* ── Background blobs ── */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">

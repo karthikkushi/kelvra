@@ -67,7 +67,7 @@ export default function OnboardingPage() {
   const back = () => { if (step > 0) setStep(step - 1); };
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body flex items-center justify-center p-6 overflow-hidden">
+    <div className="min-h-screen bg-background text-on-surface font-body flex items-center justify-center p-6 overflow-hidden">
 
       {/* Background blobs */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">

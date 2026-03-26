@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getStudySessions, getQuizScores, signOut, supabase } from "../utils/supabase";
 import { getUserXP } from "../utils/gamification";
 import ExamCountdown from "../components/ExamCountdown";
+import ThemeToggle from "../components/ThemeToggle";
 
 function calcStreak(sessions) {
   const days = new Set(sessions.map((s) => new Date(s.created_at).toDateString()));
@@ -136,6 +137,9 @@ function Sidebar({ active = "dashboard" }) {
           <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
         </div>
 
+        <div className="px-4 mb-1">
+          <ThemeToggle />
+        </div>
         <div onClick={() => navigate("/settings")}
           className={`text-on-surface-variant hover:bg-surface-container-highest/50 mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all ${active === "settings" ? "bg-surface-container-highest text-primary-container" : ""}`}>
           <span className="material-symbols-outlined text-xl">settings</span>
@@ -212,7 +216,7 @@ export default function DashboardPage({ user }) {
       ];
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="dashboard" />
 
       {/* ── MAIN ── */}
@@ -237,6 +241,8 @@ export default function DashboardPage({ user }) {
                 style={{ fontVariationSettings:"'FILL' 1" }}>stars</span>
               <span className="text-sm font-bold text-secondary">{totalXP !== null ? `${totalXP} XP` : "XP"}</span>
             </div>
+            {/* Theme toggle */}
+            <ThemeToggle compact={true} />
             {/* Language */}
             <span className="hidden sm:block material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-container transition-colors">language</span>
             {/* Avatar */}

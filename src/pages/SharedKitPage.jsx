@@ -20,7 +20,7 @@ export default function SharedKitPage() {
   }, [shareId]);
 
   if (loading) return (
-    <div className="dark min-h-screen bg-background flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-2 border-surface-container-highest border-t-primary-container rounded-full animate-spin" />
         <p className="text-on-surface-variant text-sm">Loading study kit...</p>
@@ -29,7 +29,7 @@ export default function SharedKitPage() {
   );
 
   if (error) return (
-    <div className="dark min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="text-center max-w-sm">
         <span className="material-symbols-outlined text-error text-5xl mb-4 block">error</span>
         <h2 className="font-headline text-2xl font-bold mb-3 text-on-surface">Kit not found</h2>
@@ -50,7 +50,7 @@ export default function SharedKitPage() {
   ].filter(Boolean);
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       {/* Fixed blobs */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-primary-container/5 rounded-full blur-[120px]" />
