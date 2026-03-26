@@ -36,8 +36,8 @@ export function xpToNextLevel(totalXp) {
   return currentLevel * 100 - totalXp;
 }
 
-// Award XP to user
-export async function awardXP(userId, action, metadata = {}) {
+// Award XP to user — pass user object so we can store display_name without joining auth.users
+export async function awardXP(userId, action, metadata = {}, userObj = null) {
   try {
     const xpGain = XP_REWARDS[action] || 0;
     if (!xpGain) return null;
@@ -90,8 +90,12 @@ export async function awardXP(userId, action, metadata = {}) {
     } else {
       // First time — create record
       const newBadges = action === "FIRST_SESSION" ? ["first_step"] : [];
+      const displayName = userObj?.user_metadata?.full_name
+        || userObj?.email?.split("@")[0]
+        || null;
       await supabase.from("user_xp").insert({
         user_id: userId,
+        display_name: displayName,
         total_xp: xpGain,
         weekly_xp: xpGain,
         week_start: weekStartStr,
@@ -120,12 +124,12 @@ export async function getUserXP(userId) {
   }
 }
 
-// Get leaderboard
+// Get leaderboard — reads only from user_xp, no auth.users join
 export async function getLeaderboard() {
   try {
     const { data } = await supabase
       .from("user_xp")
-      .select("user_id, total_xp, weekly_xp, level, badges, week_start")
+      .select("user_id, display_name, total_xp, weekly_xp, level, badges, week_start")
       .order("weekly_xp", { ascending: false })
       .limit(20);
     return data || [];

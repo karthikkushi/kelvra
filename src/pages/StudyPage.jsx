@@ -287,7 +287,7 @@ export default function StudyPage({ user }) {
 
       if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your GROQ_API_KEY in the .env file.");
       setResults(generated);
-      if (user?.id) awardXP(user.id, "GENERATE_KIT");
+      if (user?.id) awardXP(user.id, "GENERATE_KIT", {}, user);
       if (voiceBuddy && generated.summary?.paragraphs?.[0]) {
         setTimeout(() => speak("Here is your summary. " + generated.summary.paragraphs[0]), 500);
       }
@@ -577,7 +577,7 @@ export default function StudyPage({ user }) {
                     await navigator.clipboard.writeText(result.shareUrl);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 3000);
-                    if (user?.id) awardXP(user.id, "SHARE_KIT");
+                    if (user?.id) awardXP(user.id, "SHARE_KIT", {}, user);
                   }
                   setSharing(false);
                 }}

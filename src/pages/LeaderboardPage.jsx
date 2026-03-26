@@ -22,8 +22,7 @@ export default function LeaderboardPage({ user }) {
   }, [user]);
 
   const myRank = leaderboard.findIndex((e) => e.user_id === user?.id) + 1;
-  const displayName = (entry) =>
-    entry.display_name || entry.email?.split("@")[0] || "Student";
+  const displayName = (entry) => entry.display_name || "Student";
 
   const getRankStyle = (rank) => {
     if (rank === 1) return "text-yellow-400";
