@@ -10,6 +10,8 @@ import {
 } from "../utils/claudeAPI";
 import { saveStudySession } from "../utils/supabase";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
+import { awardXP } from "../utils/gamification";
+import { shareStudyKit } from "../utils/sharing";
 
 const TABS = [
   { id: "paste",  icon: "notes",           label: "Paste Notes" },
@@ -167,6 +169,9 @@ export default function StudyPage({ user }) {
   const [imagePreview, setImagePreview] = useState("");
   const [imageText, setImageText] = useState("");
   const [imageExtracting, setImageExtracting] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const toggleOutput = (id) => {
     const next = new Set(outputs);
@@ -279,6 +284,7 @@ export default function StudyPage({ user }) {
 
       if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your GROQ_API_KEY in the .env file.");
       setResults(generated);
+      if (user?.id) awardXP(user.id, "GENERATE_KIT");
       if (voiceBuddy && generated.summary?.paragraphs?.[0]) {
         setTimeout(() => speak("Here is your summary. " + generated.summary.paragraphs[0]), 500);
       }
@@ -550,6 +556,26 @@ export default function StudyPage({ user }) {
                 className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">psychology</span>
                 Socratic Tutor
+              </button>
+              <button
+                onClick={async () => {
+                  setSharing(true);
+                  const result = await shareStudyKit(user?.id, getContent(), results);
+                  if (result.success) {
+                    setShareUrl(result.shareUrl);
+                    await navigator.clipboard.writeText(result.shareUrl);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 3000);
+                    if (user?.id) awardXP(user.id, "SHARE_KIT");
+                  }
+                  setSharing(false);
+                }}
+                disabled={sharing}
+                className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2 disabled:opacity-50">
+                <span className="material-symbols-outlined text-sm">
+                  {copied ? "check" : "share"}
+                </span>
+                {sharing ? "Sharing..." : copied ? "Link copied!" : "Share kit"}
               </button>
             </div>
           </div>

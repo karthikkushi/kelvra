@@ -15,6 +15,8 @@ import FocusPage      from "./pages/FocusPage";
 import SettingsPage   from "./pages/SettingsPage";
 import AgentsPage    from "./pages/AgentsPage";
 import SocraticPage  from "./pages/SocraticPage";
+import SharedKitPage from "./pages/SharedKitPage";
+import LeaderboardPage from "./pages/LeaderboardPage";
 
 function Protected({ user, children }) {
   if (user === undefined) {
@@ -64,6 +66,8 @@ export default function App() {
         <Route path="/settings"   element={<Protected user={user}><SettingsPage   user={user} /></Protected>} />
         <Route path="/agents"     element={<Protected user={user}><AgentsPage     user={user} /></Protected>} />
         <Route path="/socratic"   element={<Protected user={user}><SocraticPage   user={user} /></Protected>} />
+        <Route path="/shared/:shareId" element={<SharedKitPage />} />
+        <Route path="/leaderboard"    element={<Protected user={user}><LeaderboardPage user={user} /></Protected>} />
         <Route path="*"           element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
