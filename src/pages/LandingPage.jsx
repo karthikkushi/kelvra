@@ -35,13 +35,13 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section className="pt-24 min-h-screen">
-        <div className="px-6 md:px-12 lg:px-24 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center max-w-7xl mx-auto">
+        <div className="px-4 sm:px-6 md:px-12 lg:px-24 py-12 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center max-w-7xl mx-auto">
           <div className="lg:col-span-7 z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container/30 border border-secondary-container/50 mb-6">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-bold uppercase tracking-widest text-primary-fixed">V1.0 Intelligent Engine</span>
             </div>
-            <h1 className="font-headline text-5xl md:text-7xl font-extrabold tracking-tighter leading-tight text-on-surface mb-6">
+            <h1 className="font-headline text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tighter leading-tight text-on-surface mb-6">
               The AI that learns how{" "}
               <span className="text-primary-container">YOU</span>{" "}
               learn
@@ -51,7 +51,7 @@ export default function LandingPage() {
             </p>
 
             {/* Stats bar */}
-            <div className="flex flex-wrap items-center gap-6 mb-8 px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/10 w-fit">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mb-8 px-4 py-3 bg-surface-container-low rounded-xl border border-outline-variant/10 w-full sm:w-fit">
               {["10,000+ students", "50+ languages", "Free forever"].map((s, i) => (
                 <span key={s} className="flex items-center gap-2 text-sm font-medium text-on-surface-variant">
                   {i > 0 && <span className="w-1 h-1 rounded-full bg-outline-variant/40" />}
@@ -61,14 +61,14 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <div className="flex flex-wrap gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row gap-4 mb-12">
               <button onClick={() => navigate("/auth")}
-                className="px-8 py-4 rounded-xl bg-primary-container text-on-primary-container font-bold text-base flex items-center gap-2 hover:scale-[1.05] transition-transform shadow-2xl shadow-primary-container/20">
+                className="w-full sm:w-auto px-8 py-4 rounded-xl bg-primary-container text-on-primary-container font-bold text-base flex items-center justify-center gap-2 hover:scale-[1.05] transition-transform shadow-2xl shadow-primary-container/20">
                 Get Started Free
                 <span className="material-symbols-outlined text-lg">arrow_forward</span>
               </button>
               <button onClick={() => navigate("/dashboard")}
-                className="px-8 py-4 rounded-xl border border-outline-variant/30 text-on-surface font-semibold text-base hover:bg-surface-container-low transition-all">
+                className="w-full sm:w-auto px-8 py-4 rounded-xl border border-outline-variant/30 text-on-surface font-semibold text-base hover:bg-surface-container-low transition-all text-center">
                 View Demo
               </button>
             </div>
@@ -133,7 +133,7 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="how-it-works" className="px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
+      <section id="how-it-works" className="px-4 sm:px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="font-headline text-3xl md:text-5xl font-bold text-on-surface mb-4">How Kelvra works</h2>
@@ -161,7 +161,7 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES BENTO */}
-      <section id="features" className="px-6 md:px-12 lg:px-24 py-24">
+      <section id="features" className="px-4 sm:px-6 md:px-12 lg:px-24 py-24">
         <div className="max-w-7xl mx-auto">
           <div className="max-w-4xl mb-16">
             <h2 className="font-headline text-3xl md:text-5xl font-bold text-on-surface mb-4">Precision tools for the modern mind</h2>
@@ -233,7 +233,7 @@ export default function LandingPage() {
       </section>
 
       {/* DEMO SECTION */}
-      <section className="px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
+      <section className="px-4 sm:px-6 md:px-12 lg:px-24 py-24 bg-surface-container-low/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-headline text-3xl md:text-4xl font-bold text-on-surface mb-3">See what Kelvra generates</h2>
@@ -272,7 +272,7 @@ export default function LandingPage() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="px-6 md:px-12 lg:px-24 py-24">
+      <section className="px-4 sm:px-6 md:px-12 lg:px-24 py-24">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-headline text-3xl md:text-4xl font-bold text-on-surface mb-3">Students love Kelvra</h2>

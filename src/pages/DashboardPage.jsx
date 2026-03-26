@@ -220,7 +220,7 @@ export default function DashboardPage({ user }) {
               <span className="text-sm font-bold text-tertiary-fixed-dim">{loading ? "…" : streak}</span>
             </div>
             {/* Language */}
-            <span className="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-container transition-colors">language</span>
+            <span className="hidden sm:block material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-container transition-colors">language</span>
             {/* Avatar */}
             <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center border border-primary-container/20">
               <span className="text-xs font-bold text-on-primary-container">
@@ -312,7 +312,7 @@ export default function DashboardPage({ user }) {
                   TASKS.map((t) => (
                     <div key={t.num}
                       onClick={() => navigate("/study")}
-                      className="bg-surface-container-highest/40 hover:bg-surface-container-highest transition-all duration-300 rounded-xl p-5 flex items-center gap-6 border border-outline-variant/5 cursor-pointer group min-h-[48px]">
+                      className="bg-surface-container-highest/40 hover:bg-surface-container-highest transition-all duration-300 rounded-xl p-5 flex items-center gap-6 border border-outline-variant/5 cursor-pointer group min-h-[72px]">
                       <div className="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center font-bold text-on-surface-variant font-headline text-sm">
                         {t.num}
                       </div>

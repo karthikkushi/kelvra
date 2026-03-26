@@ -289,7 +289,7 @@ export default function QuizPage({ user }) {
         <section className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 gap-8 max-w-5xl mx-auto w-full">
 
           {/* Question card */}
-          <div className="w-full bg-surface-container-low rounded-[2rem] p-8 lg:p-12 relative overflow-hidden border border-outline-variant/5">
+          <div className="w-full bg-surface-container-low rounded-[2rem] p-6 sm:p-8 lg:p-12 relative overflow-hidden border border-outline-variant/5">
             <div className="absolute top-0 right-0 p-6">
               <button onClick={() => speak(q.question)}
                 className="p-3 bg-surface-container-highest rounded-full text-primary-container hover:scale-110 transition-transform border border-outline-variant/10">
@@ -300,7 +300,7 @@ export default function QuizPage({ user }) {
               <span className="px-3 py-1 rounded-md bg-secondary-container/30 text-secondary text-[10px] font-bold uppercase tracking-widest">
                 Question {qIndex + 1} of {total}
               </span>
-              <h2 className="text-2xl lg:text-3xl font-headline font-bold text-on-surface leading-tight pr-12">
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-headline font-bold text-on-surface leading-tight pr-12">
                 {q.question}
               </h2>
             </div>
@@ -311,7 +311,7 @@ export default function QuizPage({ user }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
             {q.options.map((opt) => (
               <button key={opt.id} onClick={() => answer(opt.id)}
-                className={`group p-6 rounded-2xl flex items-center gap-4 text-left transition-all ${getOptionStyle(opt.id)}`}>
+                className={`group p-5 sm:p-6 rounded-2xl flex items-center gap-4 text-left transition-all min-h-[64px] ${getOptionStyle(opt.id)}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold font-headline flex-shrink-0 transition-all ${getLetterStyle(opt.id)}`}>
                   {opt.id}
                 </div>
@@ -327,10 +327,10 @@ export default function QuizPage({ user }) {
           </div>
 
           {/* Bottom actions */}
-          <div className="flex w-full items-center justify-between pt-2">
+          <div className="flex flex-wrap w-full items-center justify-between gap-3 pt-2">
             <button
               onClick={() => setBuddyMsg("Here's a hint: think about what makes this concept unique compared to similar ones.")}
-              className="flex items-center gap-2 px-6 py-3 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-primary-fixed hover:border-primary-fixed/40 transition-all font-bold text-xs uppercase tracking-widest">
+              className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-primary-fixed hover:border-primary-fixed/40 transition-all font-bold text-xs uppercase tracking-widest">
               <span className="material-symbols-outlined text-sm">lightbulb</span>
               Ask AI for a hint
             </button>
@@ -346,7 +346,7 @@ export default function QuizPage({ user }) {
         {/* Explanation panel */}
         {showExplanation && (
           <div className="fixed bottom-0 left-0 md:left-64 right-0 z-40 px-6 pb-6">
-            <div className="max-w-4xl mx-auto bg-surface-container-high/95 backdrop-blur-2xl rounded-t-[2rem] rounded-b-xl border border-outline-variant/20 p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.4)]">
+            <div className="max-w-4xl mx-auto bg-surface-container-high/95 backdrop-blur-2xl rounded-t-[2rem] rounded-b-xl border border-outline-variant/20 p-5 sm:p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.4)] max-h-[50vh] overflow-y-auto">
               <div className="flex items-start gap-6">
                 <div className="w-12 h-12 rounded-full bg-primary-fixed/10 flex items-center justify-center shrink-0">
                   <span className="material-symbols-outlined text-primary-fixed text-2xl"
@@ -371,7 +371,7 @@ export default function QuizPage({ user }) {
 
         {/* AI Buddy popup */}
         {buddyMsg && (
-          <div className="fixed bottom-32 right-8 z-50 flex items-end gap-3">
+          <div className="fixed bottom-24 right-4 sm:bottom-32 sm:right-8 z-50 flex items-end gap-3">
             <div className="bg-primary-container text-on-primary-container px-6 py-4 rounded-3xl rounded-br-none shadow-2xl animate-bounce">
               <p className="text-sm font-bold">{buddyMsg}</p>
             </div>
@@ -384,20 +384,21 @@ export default function QuizPage({ user }) {
       </main>
 
       {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/90 backdrop-blur-lg border-t border-outline-variant/10 z-50 px-6 py-3 flex justify-between items-center"
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
         {[
-          { icon:"dashboard", path:"/dashboard" },
-          { icon:"menu_book", path:"/study" },
-          { icon:"style",     path:"/flashcards" },
-          { icon:"quiz",      path:"/quiz", active:true },
-          { icon:"insights",  path:"/progress" },
+          { icon:"dashboard", label:"Home",  path:"/dashboard" },
+          { icon:"menu_book", label:"Study", path:"/study" },
+          { icon:"style",     label:"Cards", path:"/flashcards" },
+          { icon:"quiz",      label:"Quiz",  path:"/quiz", active:true },
+          { icon:"insights",  label:"Stats", path:"/progress" },
         ].map((item) => (
-          <span key={item.icon} onClick={() => navigate(item.path)}
-            className={`material-symbols-outlined cursor-pointer ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}
-            style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>
-            {item.icon}
-          </span>
+          <div key={item.icon} onClick={() => navigate(item.path)}
+            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
+            <span className="material-symbols-outlined"
+              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
+          </div>
         ))}
       </nav>
 
