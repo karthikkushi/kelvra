@@ -311,3 +311,47 @@ Max 200 words.`;
 
   return await callGroq(prompt);
 }
+
+// ── MEMORY PALACE — AI Mnemonics ──
+export async function generateMnemonic(concept, answer, style = "auto") {
+  const styles = {
+    acronym: "Create a memorable ACRONYM where each letter stands for a key word in the answer.",
+    story:   "Create a vivid, memorable SHORT STORY (2-3 sentences) that encodes the key information. Make it weird and visual.",
+    rhyme:   "Create a short, catchy RHYME or song that helps remember this concept.",
+    visual:  "Describe a VIVID VISUAL IMAGE or scene that represents this concept. Make it bizarre and unforgettable.",
+    auto:    "Choose the BEST mnemonic type (acronym, story, rhyme, or visual image) for this specific concept and create it.",
+  };
+
+  const prompt = `You are a memory expert creating mnemonics for students.
+
+Concept to remember: "${concept}"
+Key information: "${answer}"
+
+Task: ${styles[style] || styles.auto}
+
+Rules:
+- Make it SHORT (max 3 sentences)
+- Make it MEMORABLE and WEIRD — the stranger the better
+- Make it directly connected to the actual content
+- Start with the type: "ACRONYM:", "STORY:", "RHYME:", or "VISUAL:"
+- Then give the mnemonic
+
+Respond with ONLY the mnemonic, nothing else.`;
+
+  return await callGroq(prompt);
+}
+
+// Generate mnemonics for multiple flashcards at once
+export async function generateMnemonicsForCards(cards) {
+  const mnemonics = [];
+  for (const card of cards.slice(0, 5)) { // max 5 to avoid rate limits
+    try {
+      const mnemonic = await generateMnemonic(card.question, card.answer);
+      mnemonics.push({ question: card.question, mnemonic });
+      await new Promise(r => setTimeout(r, 500)); // small delay
+    } catch {
+      mnemonics.push({ question: card.question, mnemonic: null });
+    }
+  }
+  return mnemonics;
+}

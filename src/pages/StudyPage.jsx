@@ -12,6 +12,8 @@ import { saveStudySession } from "../utils/supabase";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 import { awardXP } from "../utils/gamification";
 import { shareStudyKit } from "../utils/sharing";
+import { exportStudyKitPDF } from "../utils/exportPDF";
+import MnemonicCard from "../components/MnemonicCard";
 
 const TABS = [
   { id: "paste",  icon: "notes",           label: "Paste Notes" },
@@ -172,6 +174,7 @@ export default function StudyPage({ user }) {
   const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const toggleOutput = (id) => {
     const next = new Set(outputs);
@@ -531,6 +534,14 @@ export default function StudyPage({ user }) {
             <div>
               {activeResult === "summary"    && results.summary    && <SummaryResult data={results.summary} />}
               {activeResult === "flashcards" && results.flashcards && <FlashcardsResult data={results.flashcards} onStudy={() => navigateWithData("/flashcards","flashcards")} />}
+              {activeResult === "flashcards" && results.flashcards && results.flashcards.length > 0 && (
+                <div className="mt-6">
+                  <MnemonicCard
+                    question={results.flashcards[0].question}
+                    answer={results.flashcards[0].answer}
+                  />
+                </div>
+              )}
               {activeResult === "quiz"       && results.quiz       && <QuizResult data={results.quiz} onStudy={() => navigateWithData("/quiz","quiz")} />}
               {activeResult === "plan"       && results.plan       && <PlanResult data={results.plan} />}
             </div>
@@ -576,6 +587,21 @@ export default function StudyPage({ user }) {
                   {copied ? "check" : "share"}
                 </span>
                 {sharing ? "Sharing..." : copied ? "Link copied!" : "Share kit"}
+              </button>
+              <button
+                onClick={async () => {
+                  setExporting(true);
+                  try {
+                    exportStudyKitPDF(getContent() || "Study Kit", results);
+                  } catch (err) {
+                    console.error("PDF export error:", err);
+                  }
+                  setExporting(false);
+                }}
+                disabled={exporting}
+                className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2 disabled:opacity-50">
+                <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                {exporting ? "Exporting..." : "Export PDF"}
               </button>
             </div>
           </div>
