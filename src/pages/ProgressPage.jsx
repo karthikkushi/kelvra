@@ -88,7 +88,7 @@ export default function ProgressPage({ user }) {
   const noData      = !loading && sessions.length === 0 && scores.length === 0;
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="insights" />
 
       <main className="md:ml-64 p-4 sm:p-6 lg:p-10 pb-24 md:pb-10 min-h-screen overflow-x-hidden">

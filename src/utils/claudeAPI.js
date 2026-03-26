@@ -312,6 +312,55 @@ Max 200 words.`;
   return await callGroq(prompt);
 }
 
+// ── HANDWRITING RECOGNITION ──
+export async function handwritingToText(base64Image, mimeType = "image/jpeg") {
+  if (!API_KEY) throw new Error("Groq API key not found.");
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.2-11b-vision-preview",
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "image_url",
+            image_url: { url: `data:${mimeType};base64,${base64Image}` },
+          },
+          {
+            type: "text",
+            text: `You are an expert at reading handwritten notes and converting them to clean digital text.
+
+Please carefully read ALL handwritten content in this image and transcribe it accurately.
+
+Instructions:
+- Transcribe every word exactly as written, even if there are spelling mistakes
+- Preserve the structure (headings, bullet points, numbered lists)
+- For diagrams or drawings, describe them in [brackets]
+- For unclear words, write your best guess with a ? mark
+- Format as clean, organized study notes
+- If the image contains printed text (not handwritten), transcribe that too
+
+Begin transcription:`,
+          },
+        ],
+      }],
+      max_tokens: 2048,
+      temperature: 0.1,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || "Handwriting recognition failed");
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text || text.length < 5) throw new Error("Could not read the handwriting. Please try a clearer photo.");
+  return text;
+}
+
 // ── MEMORY PALACE — AI Mnemonics ──
 export async function generateMnemonic(concept, answer, style = "auto") {
   const styles = {

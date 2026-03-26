@@ -59,7 +59,7 @@ export default function AgentsPage({ user }) {
   ];
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="agents" />
       <main className="md:ml-64 min-h-screen p-4 sm:p-6 md:p-10 pb-24 md:pb-10 overflow-x-hidden">
 

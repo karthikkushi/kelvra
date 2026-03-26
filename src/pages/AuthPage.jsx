@@ -80,7 +80,7 @@ export default function AuthPage() {
   const inputClass = "w-full p-3 rounded-xl bg-surface-container-highest border border-outline-variant/20 focus:border-primary-container/50 outline-none text-on-surface placeholder:text-on-surface-variant/40 transition-colors font-body text-sm";
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body flex items-center justify-center p-6 overflow-hidden">
+    <div className="min-h-screen bg-background text-on-surface font-body flex items-center justify-center p-6 overflow-hidden">
 
       {/* Background */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">

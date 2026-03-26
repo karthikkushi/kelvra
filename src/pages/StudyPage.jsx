@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
 import {
@@ -14,12 +14,15 @@ import { awardXP } from "../utils/gamification";
 import { shareStudyKit } from "../utils/sharing";
 import { exportStudyKitPDF } from "../utils/exportPDF";
 import MnemonicCard from "../components/MnemonicCard";
+import { handwritingToText } from "../utils/claudeAPI";
+import { saveFlashcardsOffline } from "../utils/offlineStorage";
 
 const TABS = [
-  { id: "paste",  icon: "notes",           label: "Paste Notes" },
-  { id: "topic",  icon: "edit_note",       label: "Type Topic" },
-  { id: "pdf",    icon: "picture_as_pdf",  label: "Upload PDF" },
-  { id: "image",  icon: "image",           label: "Upload Image" },
+  { id: "paste",       icon: "notes",           label: "Paste Notes" },
+  { id: "topic",       icon: "edit_note",       label: "Type Topic" },
+  { id: "pdf",         icon: "picture_as_pdf",  label: "Upload PDF" },
+  { id: "image",       icon: "image",           label: "Upload Image" },
+  { id: "handwriting", icon: "draw",            label: "Handwriting" },
 ];
 
 const OUTPUTS = [
@@ -175,6 +178,13 @@ export default function StudyPage({ user }) {
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [hwFile, setHwFile] = useState(null);
+  const [hwPreview, setHwPreview] = useState("");
+  const [hwText, setHwText] = useState("");
+  const [hwLoading, setHwLoading] = useState(false);
+  const [hwError, setHwError] = useState("");
+  const [savedOffline, setSavedOffline] = useState(false);
+  const hwInputRef = useRef();
 
   const toggleOutput = (id) => {
     const next = new Set(outputs);
@@ -187,6 +197,7 @@ export default function StudyPage({ user }) {
     if (tab === "topic") return topic.trim() ? `Topic: ${topic.trim()}` : "";
     if (tab === "pdf")   return pdfText.trim();
     if (tab === "image") return imageText.trim();
+    if (tab === "handwriting") return hwText.trim();
     return "";
   };
 
@@ -264,6 +275,38 @@ export default function StudyPage({ user }) {
     reader.readAsDataURL(file);
   };
 
+  const handleHandwritingUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!["image/jpeg","image/jpg","image/png","image/webp"].includes(file.type)) {
+      setHwError("Please upload a JPG or PNG photo of your handwritten notes.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setHwError("Image too large. Please use a photo under 10MB.");
+      return;
+    }
+    setHwFile(file);
+    setHwPreview(URL.createObjectURL(file));
+    setHwError("");
+    setHwText("");
+    setHwLoading(true);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const extracted = await handwritingToText(base64, file.type);
+      setHwText(extracted);
+    } catch (err) {
+      setHwError(err.message || "Could not read handwriting. Try a clearer photo with good lighting.");
+    } finally {
+      setHwLoading(false);
+    }
+  };
+
   const handleGenerate = async () => {
     const content = getContent();
     if (!content) { setError("Please add some content first."); return; }
@@ -322,7 +365,7 @@ export default function StudyPage({ user }) {
   ].filter((t) => results?.[t.id]);
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="study" />
       <main className="md:ml-64 min-h-screen p-4 sm:p-8 pb-24 md:pb-8 flex flex-col overflow-x-hidden">
 
@@ -401,6 +444,73 @@ export default function StudyPage({ user }) {
                         </div>
                         <input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.files?.[0] && handlePdfUpload(e.target.files[0])} />
                       </label>
+                    )}
+                  </div>
+                )}
+                {tab === "handwriting" && (
+                  <div className="relative" style={{ minHeight: 280 }}>
+                    <input
+                      ref={hwInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleHandwritingUpload}
+                      className="hidden"
+                    />
+                    {!hwFile && !hwLoading && (
+                      <div
+                        onClick={() => hwInputRef.current?.click()}
+                        className="h-72 bg-surface-container-low border-2 border-dashed border-outline-variant/30 rounded-2xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-primary-container/40 hover:bg-surface-container transition-all">
+                        <div className="w-16 h-16 rounded-2xl bg-surface-container-highest flex items-center justify-center">
+                          <span className="material-symbols-outlined text-primary-container text-3xl">draw</span>
+                        </div>
+                        <div className="text-center px-8">
+                          <p className="text-on-surface font-bold">Photo your handwritten notes</p>
+                          <p className="text-on-surface-variant text-sm mt-1">
+                            Take a clear photo of your notebook, whiteboard, or any handwritten content
+                          </p>
+                          <p className="text-on-surface-variant/60 text-xs mt-2">JPG, PNG · Max 10MB · Good lighting recommended</p>
+                        </div>
+                      </div>
+                    )}
+                    {hwLoading && (
+                      <div className="h-72 bg-surface-container-low border border-outline-variant/15 rounded-2xl flex flex-col items-center justify-center gap-4">
+                        <div className="w-10 h-10 border-2 border-primary-container/30 border-t-primary-container rounded-full animate-spin" />
+                        <div className="text-center">
+                          <p className="text-on-surface font-medium">Reading your handwriting...</p>
+                          <p className="text-on-surface-variant text-sm mt-1">AI is transcribing your notes</p>
+                        </div>
+                      </div>
+                    )}
+                    {hwFile && !hwLoading && hwText && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          {hwPreview && (
+                            <img src={hwPreview} alt="Uploaded" className="w-16 h-16 rounded-xl object-cover border border-outline-variant/20" />
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-on-surface">{hwFile.name}</p>
+                            <p className="text-xs text-primary-container mt-0.5">✓ {hwText.split(" ").length} words extracted</p>
+                          </div>
+                          <button onClick={() => { setHwFile(null); setHwPreview(""); setHwText(""); }}
+                            className="p-2 rounded-xl hover:bg-surface-container-highest transition-colors text-on-surface-variant">
+                            <span className="material-symbols-outlined text-sm">close</span>
+                          </button>
+                        </div>
+                        <div className="bg-surface-container-low border border-outline-variant/15 rounded-2xl p-5 max-h-48 overflow-y-auto">
+                          <p className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Extracted text</p>
+                          <p className="text-sm text-on-surface whitespace-pre-wrap leading-relaxed">{hwText}</p>
+                        </div>
+                        <button onClick={() => hwInputRef.current?.click()}
+                          className="text-xs text-primary-container hover:underline">
+                          Upload different photo
+                        </button>
+                      </div>
+                    )}
+                    {hwError && (
+                      <div className="mt-3 bg-error-container/10 border border-error/20 rounded-xl px-4 py-3 text-error text-sm flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">error</span>
+                        {hwError}
+                      </div>
                     )}
                   </div>
                 )}
@@ -603,6 +713,21 @@ export default function StudyPage({ user }) {
                 <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
                 {exporting ? "Exporting..." : "Export PDF"}
               </button>
+              {results.flashcards && (
+                <button
+                  onClick={async () => {
+                    const content = getContent();
+                    await saveFlashcardsOffline(content || "Study Kit", results.flashcards);
+                    setSavedOffline(true);
+                    setTimeout(() => setSavedOffline(false), 3000);
+                  }}
+                  className="px-6 py-3 bg-surface-container-low border border-outline-variant/20 text-on-surface font-bold rounded-xl hover:bg-surface-container-high transition-all text-sm flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">
+                    {savedOffline ? "check" : "download"}
+                  </span>
+                  {savedOffline ? "Saved!" : "Save offline"}
+                </button>
+              )}
             </div>
           </div>
         )}

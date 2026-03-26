@@ -191,7 +191,7 @@ export default function QuizPage({ user }) {
   if (done) {
     const pct = Math.round((score / total) * 100);
     return (
-      <div className="dark min-h-screen bg-background text-on-surface font-body">
+      <div className="min-h-screen bg-background text-on-surface font-body">
         <Sidebar active="quiz" />
         <main className="md:ml-64 min-h-screen flex items-center justify-center p-8">
           <div className="max-w-lg w-full bg-surface-container-low border border-outline-variant/10 rounded-3xl p-12 text-center">
@@ -232,7 +232,7 @@ export default function QuizPage({ user }) {
   }
 
   return (
-    <div className="dark min-h-screen bg-background text-on-surface font-body">
+    <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="quiz" />
 
       <main className="md:ml-64 min-h-screen bg-surface flex flex-col relative overflow-hidden">
