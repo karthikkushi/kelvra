@@ -13,6 +13,7 @@ import QuizPage       from "./pages/QuizPage";
 import ProgressPage   from "./pages/ProgressPage";
 import FocusPage      from "./pages/FocusPage";
 import SettingsPage   from "./pages/SettingsPage";
+import AgentsPage    from "./pages/AgentsPage";
 
 function Protected({ user, children }) {
   if (user === undefined) {
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/progress"   element={<Protected user={user}><ProgressPage    user={user} /></Protected>} />
         <Route path="/focus"      element={<Protected user={user}><FocusPage /></Protected>} />
         <Route path="/settings"   element={<Protected user={user}><SettingsPage   user={user} /></Protected>} />
+        <Route path="/agents"     element={<Protected user={user}><AgentsPage     user={user} /></Protected>} />
         <Route path="*"           element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
