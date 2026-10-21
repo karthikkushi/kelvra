@@ -1,10 +1,32 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { proxyGroq } from "./api/groq.js";
 
-export default defineConfig({
+// `npm run dev` serves /api/groq with the same code Vercel runs in production (api/groq.js).
+const groqDevApi = (env) => ({
+  name: "groq-dev-api",
+  configureServer(server) {
+    server.middlewares.use("/api/groq", async (req, res) => {
+      let raw = "";
+      for await (const chunk of req) raw += chunk;
+      let body = null;
+      try { body = JSON.parse(raw); } catch { /* proxyGroq answers 400 */ }
+      const token = (req.headers.authorization || "").replace(/^Bearer /, "");
+      const { status, data } = req.method === "POST"
+        ? await proxyGroq({ body, token, env, fetch })
+        : { status: 405, data: { error: { message: "Use POST." } } };
+      res.statusCode = status;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify(data));
+    });
+  },
+});
+
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
+    groqDevApi(loadEnv(mode, process.cwd(), "")),
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icon-192.svg", "icon-512.svg"],
@@ -45,11 +67,6 @@ export default defineConfig({
             },
           },
           {
-            // Network first for API calls
-            urlPattern: /^https:\/\/api\.groq\.com\/.*/i,
-            handler: "NetworkOnly",
-          },
-          {
             // Network first for Supabase
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkOnly",
@@ -61,4 +78,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));
