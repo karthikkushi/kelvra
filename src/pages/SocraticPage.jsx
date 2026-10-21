@@ -51,7 +51,7 @@ export default function SocraticPage({ user }) {
     try {
       const question = await startSocraticSession(topicToUse);
       setMessages([{ role: "ai", content: question, timestamp: new Date() }]);
-    } catch (err) {
+    } catch {
       setMessages([{ role: "ai", content: "Let's explore this topic together. What do you already know about it?", timestamp: new Date() }]);
     } finally {
       setLoading(false);

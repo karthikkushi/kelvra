@@ -13,7 +13,7 @@ export function setTheme(theme) {
   try {
     localStorage.setItem(THEME_KEY, theme);
     applyTheme(theme);
-  } catch {}
+  } catch { /* best-effort */ }
 }
 
 export function applyTheme(theme) {

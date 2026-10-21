@@ -322,13 +322,6 @@ export async function runPredictorAgent(userId, examName = "your exam") {
       .order("created_at", { ascending: false })
       .limit(30);
 
-    const { data: sessions } = await supabase
-      .from("study_sessions")
-      .select("topic, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-
     if (!scores || scores.length < 3) {
       return {
         success: true,

@@ -37,7 +37,7 @@ export function xpToNextLevel(totalXp) {
 }
 
 // Award XP to user — pass user object so we can store display_name without joining auth.users
-export async function awardXP(userId, action, metadata = {}, userObj = null) {
+export async function awardXP(userId, action, _metadata = {}, userObj = null) {
   try {
     const xpGain = XP_REWARDS[action] || 0;
     if (!xpGain) return null;

@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./DashboardPage";
-import { getLeaderboard, getUserXP, calculateLevel, xpToNextLevel, BADGES } from "../utils/gamification";
+import { getLeaderboard, getUserXP, xpToNextLevel, BADGES } from "../utils/gamification";
 
 export default function LeaderboardPage({ user }) {
-  const navigate = useNavigate();
   const [leaderboard, setLeaderboard] = useState([]);
   const [myXP, setMyXP] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("weekly");
 
   useEffect(() => {
     Promise.all([

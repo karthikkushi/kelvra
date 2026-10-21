@@ -13,7 +13,7 @@ export const getVoiceEnabled = () => {
 
 export const setVoiceEnabled = (enabled) => {
   try { localStorage.setItem(STORAGE_KEY, String(enabled)); }
-  catch {}
+  catch { /* best-effort */ }
 };
 
 function getBestVoice() {

@@ -9,7 +9,7 @@ import {
   extractTextFromImage,
 } from "../utils/claudeAPI";
 import { saveStudySession } from "../utils/supabase";
-import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
+import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled } from "../utils/voice";
 import { awardXP } from "../utils/gamification";
 import { shareStudyKit } from "../utils/sharing";
 import { exportStudyKitPDF } from "../utils/exportPDF";
@@ -166,7 +166,6 @@ export default function StudyPage({ user }) {
   const [error, setError] = useState("");
   const [results, setResults] = useState(null);
   const [activeResult, setActiveResult] = useState("summary");
-  const [pdfFile, setPdfFile] = useState(null);
   const [pdfText, setPdfText] = useState("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
   const [pdfInfo, setPdfInfo] = useState(null);
@@ -174,7 +173,6 @@ export default function StudyPage({ user }) {
   const [imagePreview, setImagePreview] = useState("");
   const [imageText, setImageText] = useState("");
   const [imageExtracting, setImageExtracting] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -214,7 +212,6 @@ export default function StudyPage({ user }) {
       setError("Please upload a valid PDF file.");
       return;
     }
-    setPdfFile(file);
     setPdfText("");
     setPdfInfo(null);
     setPdfExtracting(true);
@@ -233,9 +230,8 @@ export default function StudyPage({ user }) {
       if (!fullText.trim()) throw new Error("No text found. Try a text-based PDF, not a scanned image.");
       setPdfText(fullText);
       setPdfInfo({ name: file.name.replace(/\.pdf$/i, ""), pages: pdf.numPages });
-    } catch (err) {
+    } catch {
       setError("Could not read PDF. Try a text-based PDF, not a scanned image.");
-      setPdfFile(null);
     } finally {
       setPdfExtracting(false);
     }
@@ -264,7 +260,7 @@ export default function StudyPage({ user }) {
         const extracted = await extractTextFromImage(base64, file.type);
         if (!extracted.trim()) throw new Error("No text extracted from image.");
         setImageText(extracted);
-      } catch (err) {
+      } catch {
         setError("Could not extract text from image. Make sure it contains readable text.");
         setImageFile(null);
         setImagePreview("");
@@ -341,7 +337,7 @@ export default function StudyPage({ user }) {
       if (user?.id) {
         try {
           await saveStudySession(user.id, getTopicName(), generated);
-        } catch (_) { /* never block UI */ }
+        } catch { /* never block UI */ }
       }
     } catch (err) {
       setError(err.message || "Something went wrong. Check your API key.");
@@ -432,7 +428,7 @@ export default function StudyPage({ user }) {
                         <span className="material-symbols-outlined text-primary-container text-4xl" style={{fontVariationSettings:"'FILL' 1"}}>picture_as_pdf</span>
                         <p className="text-on-surface font-bold">{pdfInfo.name}</p>
                         <p className="text-on-surface-variant text-sm">{pdfInfo.pages} pages extracted · {pdfText.length.toLocaleString()} characters</p>
-                        <button onClick={() => { setPdfFile(null); setPdfText(""); setPdfInfo(null); }}
+                        <button onClick={() => { setPdfText(""); setPdfInfo(null); }}
                           className="text-xs text-on-surface-variant hover:text-error transition-colors">Remove</button>
                       </div>
                     ) : (
@@ -683,7 +679,6 @@ export default function StudyPage({ user }) {
                   setSharing(true);
                   const result = await shareStudyKit(user?.id, getContent(), results);
                   if (result.success) {
-                    setShareUrl(result.shareUrl);
                     await navigator.clipboard.writeText(result.shareUrl);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 3000);

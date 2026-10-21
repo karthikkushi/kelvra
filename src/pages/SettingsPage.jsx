@@ -25,7 +25,7 @@ export default function SettingsPage({ user }) {
       await supabase.auth.updateUser({ data: { full_name: displayName.trim() } });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch (_) {}
+    } catch { /* best-effort */ }
     setSaving(false);
   };
 

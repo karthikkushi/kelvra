@@ -92,9 +92,18 @@ function normalizeQuestions(qs) {
   }));
 }
 
+// Questions from the last generated study kit, else the sample quiz
+function storedQuestions() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem("kelvra_quiz"));
+    if (Array.isArray(parsed) && parsed.length > 0) return normalizeQuestions(parsed);
+  } catch { /* missing or broken data: use the sample quiz */ }
+  return QUESTIONS;
+}
+
 export default function QuizPage({ user }) {
   const navigate = useNavigate();
-  const [questions, setQuestions] = useState(QUESTIONS);
+  const [questions] = useState(storedQuestions);
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
@@ -102,19 +111,6 @@ export default function QuizPage({ user }) {
   const [diffIndex, setDiffIndex] = useState(1);
   const [done, setDone] = useState(false);
   const [voiceOn, setVoiceOn] = useState(getVoiceEnabled());
-
-  // Load from sessionStorage if available
-  useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem("kelvra_quiz");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setQuestions(normalizeQuestions(parsed));
-        }
-      }
-    } catch (_) {}
-  }, []);
 
   useEffect(() => {
     if (voiceOn && questions[qIndex]?.question) {
@@ -168,7 +164,7 @@ export default function QuizPage({ user }) {
           const pct = Math.round((finalScore / total) * 100);
           awardXP(user.id, "COMPLETE_QUIZ", {}, user);
           if (pct === 100) awardXP(user.id, "PERFECT_QUIZ", {}, user);
-        } catch (_) { /* never block UI */ }
+        } catch { /* never block UI */ }
       }
     }
   };
