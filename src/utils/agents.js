@@ -3,23 +3,13 @@
 // 4 intelligent agents that power personalized learning
 
 import { supabase } from "./supabase";
-
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+import { groqFetch } from "./claudeAPI";
 
 async function callGroq(prompt, maxTokens = 1000) {
-  const response = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: maxTokens,
-    }),
+  const response = await groqFetch({
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.3,
+    max_tokens: maxTokens,
   });
   const data = await response.json();
   return data?.choices?.[0]?.message?.content || "";
@@ -328,13 +318,6 @@ export async function runPredictorAgent(userId, examName = "your exam") {
     const { data: scores } = await supabase
       .from("quiz_scores")
       .select("topic, pct, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30);
-
-    const { data: sessions } = await supabase
-      .from("study_sessions")
-      .select("topic, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(30);

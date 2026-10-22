@@ -55,7 +55,7 @@ export default function OnboardingPage() {
         const goal          = STEPS[1].options[selected[1] ?? 0].title;
         const learningStyle = STEPS[2].options[selected[2] ?? 0].title;
         await saveOnboardingPrefs(studyType, goal, learningStyle);
-      } catch (_) {
+      } catch {
         // Never block navigation — prefs save is best-effort
       } finally {
         setSaving(false);

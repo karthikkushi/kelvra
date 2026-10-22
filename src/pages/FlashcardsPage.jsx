@@ -44,25 +44,26 @@ const RATINGS = [
 ];
 
 
+// Cards from the last generated study kit, else the sample deck
+function storedCards() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem("kelvra_flashcards"));
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch { /* missing or broken data: use the sample deck */ }
+  return CARDS;
+}
+
 export default function FlashcardsPage() {
   const navigate = useNavigate();
-  const [cards, setCards] = useState(CARDS);
+  const [cards] = useState(storedCards);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [ratings, setRatings] = useState({});
   const [voiceOn, setVoiceOn] = useState(getVoiceEnabled());
   const [done, setDone] = useState(false);
 
-  // Load cards from sessionStorage if available
+  // Preload voices
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem("kelvra_flashcards");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) setCards(parsed);
-      }
-    } catch (_) {}
-    // Preload voices
     window.speechSynthesis?.getVoices();
   }, []);
 

@@ -1,28 +1,27 @@
 // src/utils/claudeAPI.js
-// ── Using Groq API (free — 14,400 requests/day, no rate limit issues) ──
+// ── AI calls go to Groq through our own /api/groq (api/groq.js), which keeps the key on the server ──
+import { supabase } from "./supabase";
 
-const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+// The server picks the model and checks that the user is signed in.
+export async function groqFetch(body) {
+  const { data: { session } } = await supabase.auth.getSession();
+  return fetch("/api/groq", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${session?.access_token ?? ""}`,
+    },
+    body: JSON.stringify(body),
+  });
+}
 
 async function callGroq(prompt) {
-  if (!API_KEY) {
-    throw new Error("Groq API key not found. Add Vite_GROQ_API_KEY to your .env file and restart the server.");
-  }
-
   let response;
   try {
-    response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 2048,
-      }),
+    response = await groqFetch({
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2048,
     });
   } catch (networkErr) {
     throw new Error("Network error: " + networkErr.message);
@@ -215,24 +214,15 @@ Give a helpful hint without giving away the answer. Keep it to 1-2 sentences.`;
 }
 
 export async function extractTextFromImage(base64Image, mimeType) {
-  if (!API_KEY) throw new Error("Groq API key not found.");
-  const response = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.2-11b-vision-preview",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-          { type: "text", text: "Extract and transcribe all text from this image. If it contains diagrams, describe them in text suitable for studying." },
-        ],
-      }],
-      max_tokens: 2048,
-    }),
+  const response = await groqFetch({
+    messages: [{
+      role: "user",
+      content: [
+        { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
+        { type: "text", text: "Extract and transcribe all text from this image. If it contains diagrams, describe them in text suitable for studying." },
+      ],
+    }],
+    max_tokens: 2048,
   });
   const data = await response.json();
   if (!response.ok) throw new Error(data?.error?.message || "Vision API error");
@@ -314,16 +304,7 @@ Max 200 words.`;
 
 // ── HANDWRITING RECOGNITION ──
 export async function handwritingToText(base64Image, mimeType = "image/jpeg") {
-  if (!API_KEY) throw new Error("Groq API key not found.");
-
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "llama-3.2-11b-vision-preview",
+  const response = await groqFetch({
       messages: [{
         role: "user",
         content: [
@@ -351,7 +332,6 @@ Begin transcription:`,
       }],
       max_tokens: 2048,
       temperature: 0.1,
-    }),
   });
 
   const data = await response.json();

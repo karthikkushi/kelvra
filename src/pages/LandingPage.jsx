@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 const STATS = [
-  { value: "10,000+", label: "Students" },
-  { value: "50+",     label: "Languages" },
+  { value: "10",      label: "Languages" },
   { value: "4",       label: "AI Agents" },
   { value: "Free",    label: "Forever plan" },
 ];
@@ -66,37 +65,10 @@ const FEATURES = [
   },
   {
     icon: "translate",
-    title: "10+ Languages",
+    title: "10 Languages",
     desc: "Generate study materials in Hindi, Tamil, Arabic, Spanish and more. Study in your language.",
     color: "text-tertiary-fixed-dim",
     bg: "bg-tertiary-container/20",
-  },
-];
-
-const TESTIMONIALS = [
-  {
-    name: "Priya S.",
-    role: "NEET Aspirant, Chennai",
-    avatar: "P",
-    avatarBg: "bg-primary-container/20 text-primary-container",
-    text: "I used to spend 3 hours making flashcards manually. Kelvra does it in 10 seconds. My Biology scores went from 65% to 89% in one month.",
-    stars: 5,
-  },
-  {
-    name: "Arjun M.",
-    role: "B.Tech CSE, Bangalore",
-    avatar: "A",
-    avatarBg: "bg-secondary-container/30 text-secondary",
-    text: "The AI quiz is scary good. It found my exact weak spots in Data Structures and kept drilling me on them. Cleared my semester with 9.1 CGPA.",
-    stars: 5,
-  },
-  {
-    name: "Fatima K.",
-    role: "CA Intermediate Student",
-    avatar: "F",
-    avatarBg: "bg-tertiary-container/20 text-tertiary-fixed-dim",
-    text: "I upload my CA study material as PDF and get a full study kit in seconds. The voice buddy reads everything aloud while I cook. Life changing.",
-    stars: 5,
   },
 ];
 
@@ -115,7 +87,7 @@ const FAQS = [
   },
   {
     q: "Does it work in Hindi and Tamil?",
-    a: "Yes. You can input content in any language and get study materials output in Hindi, Tamil, Arabic, Spanish and 7 more languages.",
+    a: "Yes. You can input content in any language and get study materials in English, Hindi, Tamil, Arabic, Spanish and 5 more languages.",
   },
 ];
 
@@ -189,7 +161,7 @@ export default function LandingPage() {
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
+        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
           {STATS.map((s) => (
             <div key={s.label} className="bg-surface-container-low border border-outline-variant/10 rounded-xl px-4 py-4 text-center">
               <div className="font-headline text-2xl font-extrabold text-primary-container">{s.value}</div>
@@ -262,7 +234,7 @@ export default function LandingPage() {
                 Try it on<br />"Photosynthesis"
               </h2>
               <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
-                We typed "Photosynthesis" into Kelvra. In 8 seconds it generated 8 flashcards, 6 quiz questions, a 3-paragraph summary, and a 5-day study plan. Here's what it made:
+                We typed "Photosynthesis" into Kelvra. It generated 8 flashcards, 6 quiz questions, a 3-paragraph summary, and a 5-day study plan. Here's what it made:
               </p>
               <button onClick={() => navigate("/auth")}
                 className="bg-primary-container text-on-primary-container font-bold px-6 py-3 rounded-xl hover:scale-[1.02] transition-all text-sm">
@@ -300,40 +272,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ── */}
-      <section className="py-20 px-6 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Student stories</span>
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
-            Students love Kelvra
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map((t, i) => (
-            <div key={i} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-7 hover:border-primary-container/20 transition-all">
-              {/* Stars */}
-              <div className="flex gap-1 mb-4">
-                {Array.from({ length: t.stars }).map((_, j) => (
-                  <span key={j} className="material-symbols-outlined text-primary-container text-sm"
-                    style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                ))}
-              </div>
-              <p className="text-on-surface-variant text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full ${t.avatarBg} flex items-center justify-center font-bold text-sm`}>
-                  {t.avatar}
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-on-surface">{t.name}</p>
-                  <p className="text-xs text-on-surface-variant">{t.role}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── FAQ ── */}
       <section className="py-20 px-6 max-w-3xl mx-auto">
         <div className="text-center mb-14">
@@ -361,7 +299,7 @@ export default function LandingPage() {
               Ready to study smarter?
             </h2>
             <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto">
-              Join students who are already using AI to study faster, retain more and score higher.
+              Turn your notes into flashcards, a quiz and a study plan.
             </p>
             <button
               onClick={() => navigate("/auth")}

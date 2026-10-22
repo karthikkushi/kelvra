@@ -1,17 +1,15 @@
 // src/components/InstallPrompt.jsx
 import { useState, useEffect } from "react";
 
+const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches;
+
 export default function InstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setInstalled(true);
-      return;
-    }
+    if (isStandalone()) return; // already installed
 
     const handler = (e) => {
       e.preventDefault();
