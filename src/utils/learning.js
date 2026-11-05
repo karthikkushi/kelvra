@@ -187,3 +187,37 @@ export async function getActivityEvents(uid) {
     ...answers.map((a) => ({ at: a.created_at, kind: "answer" })),
   ].filter((e) => e.at);
 }
+
+// ── "Bad test day" debriefs ──
+export function saveDebrief(uid, data) {
+  if (ok(uid)) saveLater(addDoc(col(uid, "debriefs"), { ...data, created_at: nowIso() }), "Save debrief");
+}
+export const getDebriefs = (uid, max = 10) => list(uid, "debriefs", orderBy("created_at", "desc"), limit(max));
+
+// ── Weekly numbers for the family digest (last 7 days) ──
+export async function getWeekStats(uid) {
+  const DAY = 86400000;
+  const recent = (iso) => iso && Date.now() - new Date(iso) < 7 * DAY;
+  const safe = (p) => p.catch(() => []);
+  const [sessions, scores, mistakes, focus, answers] = await Promise.all([
+    safe(listRecent(uid, "study_sessions", { days: 7 })),
+    safe(listRecent(uid, "quiz_scores", { days: 14 })),
+    getMistakes(uid),
+    getFocusSessions(uid, 50),
+    getAnswers(uid, 30),
+  ]);
+  const weekFocus = focus.filter((f) => recent(f.created_at));
+  const weekAnswers = answers.filter((a) => recent(a.created_at));
+  return {
+    sessions,
+    scores,
+    topics: [...new Set(sessions.map((s) => s.topic).filter((t) => t && t.length < 50))],
+    mistakesFixed: mistakes.filter((m) => m.mastered && recent(m.mastered_at)).length,
+    focusMinutes: weekFocus.reduce((a, f) => a + (f.actual_min || 0), 0),
+    focusSessions: weekFocus.length,
+    answers: {
+      count: weekAnswers.length,
+      improved: weekAnswers.filter((a) => (a.attempts?.length || 0) > 1 && a.attempts.at(-1).overall > a.attempts[0].overall).length,
+    },
+  };
+}

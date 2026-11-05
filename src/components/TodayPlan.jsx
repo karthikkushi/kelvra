@@ -74,7 +74,7 @@ function CheckIn({ day, onSave }) {
 
 export default function TodayPlan({ user, sessions = [], scores = [] }) {
   const navigate = useNavigate();
-  const [plan, setPlan] = useState(null);
+  const [input, setInput] = useState(null); // data for the plan; sleep comes from today's tap
   const [day, setDay] = useState(null);
 
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
       if (!alive) return;
       const weak = topicAverages(scores)[0];
       const todayStr = new Date().toDateString();
-      setPlan(buildTodayPlan({
+      setInput(({
         dueCards: snap.dueCards,
         openMistakes: snap.openMistakes,
         mistakeTopic: snap.mistakeTopics[0]?.topic,
@@ -101,10 +101,11 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
     return () => { alive = false; };
   }, [user?.id, sessions, scores]);
 
-  if (!plan || !day) {
+  if (!input || !day) {
     return <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl h-64 animate-pulse" />;
   }
 
+  const plan = buildTodayPlan({ ...input, sleep: day.sleep });
   const done = new Set(day.done || []);
   const doneCount = plan.tasks.filter((t) => done.has(t.id)).length;
 
@@ -114,6 +115,11 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
     const update = { done: [...next] };
     setDay((d) => ({ ...d, ...update }));
     saveDay(user.id, update);
+  };
+
+  const setSleep = (sleep) => {
+    setDay((d) => ({ ...d, sleep }));
+    saveDay(user.id, { sleep });
   };
 
   const saveCheckin = (checkin) => {
@@ -132,6 +138,14 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
       </div>
       <div className="h-1.5 bg-surface-container-highest rounded-full my-4 overflow-hidden">
         <div className="h-full bg-primary-container transition-all" style={{ width: `${(doneCount / plan.tasks.length) * 100}%` }} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
+        <span className="text-on-surface-variant">Last night's sleep:</span>
+        {[["good", "😴 Good"], ["ok", "🙂 OK"], ["poor", "🥱 Poor"]].map(([id, label]) => (
+          <button key={id} onClick={() => setSleep(id)} aria-pressed={day.sleep === id}
+            className={`px-2.5 py-1 rounded-full border ${day.sleep === id ? "border-primary-container text-primary-container bg-primary-container/10" : "border-outline-variant/20 text-on-surface-variant"}`}>{label}</button>
+        ))}
       </div>
 
       <ul className="space-y-2 mb-5">

@@ -47,6 +47,15 @@ npm run build       # production build into dist/
     ([`src/utils/focus.js`](src/utils/focus.js)).
   - **Habit coach** (`/habits`): patterns from real activity (days studied, late nights, cramming) and one if-then experiment a
     week, counted as "X of 7 days", never a streak ([`src/utils/habits.js`](src/utils/habits.js)).
+- **Family and wellbeing** (student-controlled, nothing is sent by Kelvra itself):
+  - **Family update** (`/family`): the student picks what to share, sees "Preview as parent", and sends a weekly summary on
+    WhatsApp in English or Hindi; effort first, scores only if opted in, never rank, mood or chats ([`src/utils/family.js`](src/utils/family.js)).
+  - **Test debrief** (`/debrief`): where the marks went, one fix (can become the week's habit), optional calm message for parents.
+  - **Mistake "why" report** (Mistakes page): AI finds 2-3 recurring patterns across open mistakes, with a fix each.
+  - **Stress reset** (`/reset`, quick mode `/reset?quick=1`): "stress can fuel you + abilities grow" cards, 1-minute breathing,
+    note to a junior; optional worry dump that is never saved. Today's plan offers it when an exam is ≤ 3 days away and gets
+    lighter after a poor night's sleep.
+  - **Leaderboard is opt-in**: nobody is listed unless they choose to be (enforced in `firestore.rules`).
 - **Safety:** messages that sound like self-harm are not sent to the AI or saved; the student sees Tele-MANAS 14416 instead
   ([`src/utils/safety.js`](src/utils/safety.js)). Onboarding asks only an age group; unknown age is treated as under 18.
 
@@ -73,4 +82,3 @@ The free Spark plan is enough to start and, unlike Supabase's free tier, does no
   scoring, crisis detection) and the database security rules; not the pages.
 - Before May 2027 (DPDP Act children's rules): verifiable parental consent for under-18s and a lawyer's view on whether
   adaptive learning counts as "behavioural monitoring". See the research report.
-- The leaderboard ranks students by XP, which the research flags as a pressure risk; consider removing or making it opt-in.

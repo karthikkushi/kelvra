@@ -16,10 +16,11 @@ service cloud.firestore {
       }
     }
 
-    // Leaderboard: every signed-in student can read it; you can only write your own row,
+    // Leaderboard (opt-in): signed-in students can read rows marked public; you can always read
+    // your own row. You can only write your own row,
     // XP can only go up, and by at most 50 per save (the biggest single reward is 50).
     match /leaderboard/{uid} {
-      allow read: if signedIn();
+      allow read: if signedIn() && (resource.data.public == true || request.auth.uid == uid);
       allow create: if isOwner(uid)
         && request.resource.data.total_xp is int
         && request.resource.data.total_xp >= 0 && request.resource.data.total_xp <= 50

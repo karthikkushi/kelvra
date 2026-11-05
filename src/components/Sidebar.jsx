@@ -6,22 +6,26 @@ import { onUserChange, signOut } from "../utils/firebase";
 import ThemeToggle from "./ThemeToggle";
 
 const LINKS = [
-  { id: "dashboard",   icon: "dashboard",   label: "Dashboard",   path: "/dashboard" },
-  { id: "study",       icon: "menu_book",   label: "Study",       path: "/study" },
-  { id: "review",      icon: "repeat",      label: "Review",      path: "/review" },
-  { id: "flashcards",  icon: "style",       label: "Flashcards",  path: "/flashcards" },
-  { id: "quiz",        icon: "quiz",        label: "Quiz",        path: "/quiz" },
-  { id: "mistakes",    icon: "assignment_late", label: "Mistakes", path: "/mistakes" },
-  { id: "answer",      icon: "edit_note",   label: "Answer coach", path: "/answer" },
-  { id: "habits",      icon: "self_improvement", label: "Habits", path: "/habits" },
-  { id: "mentor",      icon: "diversity_3", label: "Mentor",      path: "/mentor" },
-  { id: "explore",     icon: "explore",     label: "Explore",     path: "/explore" },
-  { id: "agents",      icon: "smart_toy",   label: "AI Agents",   path: "/agents" },
-  { id: "socratic",    icon: "psychology",  label: "AI Tutor",    path: "/socratic" },
-  { id: "focus",       icon: "timer",       label: "Focus",       path: "/focus" },
-  { id: "leaderboard", icon: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
-  { id: "insights",    icon: "insights",    label: "Insights",    path: "/progress" },
+  { id: "dashboard",   icon: "dashboard",        label: "Dashboard",    path: "/dashboard",   group: "Learn" },
+  { id: "study",       icon: "menu_book",        label: "Study",        path: "/study",       group: "Learn" },
+  { id: "review",      icon: "repeat",           label: "Review",       path: "/review",      group: "Learn" },
+  { id: "quiz",        icon: "quiz",             label: "Quiz",         path: "/quiz",        group: "Learn" },
+  { id: "mistakes",    icon: "assignment_late",  label: "Mistakes",     path: "/mistakes",    group: "Learn" },
+  { id: "answer",      icon: "edit_note",        label: "Answer coach", path: "/answer",      group: "Learn" },
+  { id: "mentor",      icon: "diversity_3",      label: "Mentor",       path: "/mentor",      group: "Grow" },
+  { id: "habits",      icon: "self_improvement", label: "Habits",       path: "/habits",      group: "Grow" },
+  { id: "focus",       icon: "timer",            label: "Focus",        path: "/focus",       group: "Grow" },
+  { id: "debrief",     icon: "rate_review",      label: "Test debrief", path: "/debrief",     group: "Grow" },
+  { id: "reset",       icon: "self_care",        label: "Stress reset", path: "/reset",       group: "Grow" },
+  { id: "family",      icon: "family_restroom",  label: "Family update", path: "/family",     group: "Grow" },
+  { id: "explore",     icon: "explore",          label: "Explore",      path: "/explore",     group: "More" },
+  { id: "flashcards",  icon: "style",            label: "Flashcards",   path: "/flashcards",  group: "More" },
+  { id: "socratic",    icon: "psychology",       label: "AI Tutor",     path: "/socratic",    group: "More" },
+  { id: "agents",      icon: "smart_toy",        label: "AI Agents",    path: "/agents",      group: "More" },
+  { id: "insights",    icon: "insights",         label: "Insights",     path: "/progress",    group: "More" },
+  { id: "leaderboard", icon: "leaderboard",      label: "Leaderboard",  path: "/leaderboard", group: "More" },
 ];
+const NEW_IDS = ["debrief", "reset", "family"];
 
 // The four most used pages sit on the phone bar; everything else is under "More".
 const MOBILE_MAIN = ["dashboard", "study", "review", "mentor"];
@@ -105,21 +109,26 @@ export default function Sidebar({ active = "dashboard", mobileNav = true }) {
           <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mt-1 font-label">Study smarter</p>
         </div>
         <nav aria-label="Main" className="flex-1 space-y-0.5 overflow-y-auto">
-          {LINKS.map((l) => (
-            <button key={l.id}
-              onClick={() => navigate(l.path)}
-              aria-current={active === l.id ? "page" : undefined}
-              className={`w-[calc(100%-1rem)] flex items-center px-4 py-2.5 mx-2 rounded-lg transition-all duration-200 gap-3 font-label text-sm font-medium text-left ${
-                active === l.id
-                  ? "bg-surface-container-highest text-primary-container"
-                  : "text-on-surface-variant hover:bg-surface-container-highest/50 hover:translate-x-1"
-              }`}>
-              <span className="material-symbols-outlined" style={active === l.id ? filled : {}}>{l.icon}</span>
-              {l.label}
-              {["answer", "habits"].includes(l.id) && (
-                <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-container/15 text-primary-container">New</span>
+          {LINKS.map((l, idx) => (
+            <div key={l.id}>
+              {(idx === 0 || LINKS[idx - 1].group !== l.group) && (
+                <p className={`px-6 pb-1 text-[9px] font-bold uppercase tracking-[0.2em] text-on-surface-variant/60 ${idx === 0 ? "" : "pt-3"}`}>{l.group}</p>
               )}
-            </button>
+              <button
+                onClick={() => navigate(l.path)}
+                aria-current={active === l.id ? "page" : undefined}
+                className={`w-[calc(100%-1rem)] flex items-center px-4 py-2 mx-2 rounded-lg transition-all duration-200 gap-3 font-label text-sm font-medium text-left ${
+                  active === l.id
+                    ? "bg-surface-container-highest text-primary-container"
+                    : "text-on-surface-variant hover:bg-surface-container-highest/50 hover:translate-x-1"
+                }`}>
+                <span className="material-symbols-outlined text-xl" style={active === l.id ? filled : {}}>{l.icon}</span>
+                {l.label}
+                {NEW_IDS.includes(l.id) && (
+                  <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-container/15 text-primary-container">New</span>
+                )}
+              </button>
+            </div>
           ))}
         </nav>
         <div className="px-4 mt-auto space-y-1">

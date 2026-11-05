@@ -25,6 +25,9 @@ const MistakesPage    = lazy(() => import("./pages/MistakesPage"));
 const ExplorePage     = lazy(() => import("./pages/ExplorePage"));
 const AnswerPage      = lazy(() => import("./pages/AnswerPage"));
 const HabitsPage      = lazy(() => import("./pages/HabitsPage"));
+const FamilyPage      = lazy(() => import("./pages/FamilyPage"));
+const DebriefPage     = lazy(() => import("./pages/DebriefPage"));
+const ResetPage       = lazy(() => import("./pages/ResetPage"));
 const SharedKitPage   = lazy(() => import("./pages/SharedKitPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 
@@ -112,6 +115,9 @@ export default function App() {
             <Route path="/explore"     element={guard(<ExplorePage     user={user} />)} />
             <Route path="/answer"      element={guard(<AnswerPage      user={user} />)} />
             <Route path="/habits"      element={guard(<HabitsPage      user={user} />)} />
+            <Route path="/family"      element={guard(<FamilyPage      user={user} />)} />
+            <Route path="/debrief"     element={guard(<DebriefPage     user={user} />)} />
+            <Route path="/reset"       element={guard(<ResetPage       user={user} />)} />
             <Route path="/leaderboard" element={guard(<LeaderboardPage user={user} />)} />
             <Route path="/shared/:shareId" element={firebaseReady ? <SharedKitPage /> : <SetupNeeded />} />
             <Route path="*" element={<Navigate to="/" replace />} />

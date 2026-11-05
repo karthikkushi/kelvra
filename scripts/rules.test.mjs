@@ -40,9 +40,12 @@ test("a student cannot read or write another student's data", async () => {
   await denied(getDoc(doc(guest.db, "users", alice.uid)));
 });
 
-test("leaderboard: readable when signed in; XP only goes up, by at most 50", async () => {
+test("leaderboard: opt-in only; XP only goes up, by at most 50", async () => {
   const row = doc(alice.db, "leaderboard", alice.uid);
   await setDoc(row, { total_xp: 10, weekly_xp: 10, level: 1, badges: [] });
+  await denied(getDoc(doc(bob.db, "leaderboard", alice.uid)));   // private by default
+  assert.equal((await getDoc(row)).data().total_xp, 10);           // owner can read
+  await setDoc(row, { public: true }, { merge: true });            // Alice opts in
   await setDoc(row, { total_xp: 25, weekly_xp: 25 }, { merge: true });
   await denied(setDoc(row, { total_xp: 9999, weekly_xp: 9999 }, { merge: true }));
   await denied(setDoc(row, { total_xp: 5, weekly_xp: 5 }, { merge: true }));
@@ -50,6 +53,11 @@ test("leaderboard: readable when signed in; XP only goes up, by at most 50", asy
   await denied(setDoc(doc(bob.db, "leaderboard", bob.uid), { total_xp: 500, weekly_xp: 500 }));
   assert.equal((await getDoc(doc(bob.db, "leaderboard", alice.uid))).data().total_xp, 25);
   await denied(getDocs(collection(guest.db, "leaderboard")));
+  // Public rows can be listed only with the public filter
+  const { query, where } = await import("firebase/firestore");
+  const pub = await getDocs(query(collection(bob.db, "leaderboard"), where("public", "==", true)));
+  assert.ok(pub.docs.some((d) => d.id === alice.uid));
+  await denied(getDocs(collection(bob.db, "leaderboard")));
 });
 
 test("shared kits: anyone with the link can open and count a view, nothing else", async () => {

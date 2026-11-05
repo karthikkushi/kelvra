@@ -14,6 +14,8 @@ export const MAX_TASKS = 4;
  * @param {{name:string, daysLeft:number, dailyMinutes?:number}} [s.exam]
  * @param {boolean} [s.studiedToday]
  * @param {{sentence:string, doneToday:boolean}} [s.habit]  this week's if-then experiment
+ * @param {"good"|"ok"|"poor"} [s.sleep]  last night's sleep (student's own tap)
+ * @param {boolean} [s.stressReset]  offer the short stress reset (e.g. a test is near)
  * @returns {{tasks: Array<{id,icon,title,detail,path,minutes}>, focusMinutes:number, headline:string}}
  */
 export function buildTodayPlan(s) {
@@ -83,12 +85,26 @@ export function buildTodayPlan(s) {
     });
   }
 
-  const planned = tasks.slice(0, MAX_TASKS);
+  if (s.stressReset || (s.exam && s.exam.daysLeft >= 0 && s.exam.daysLeft <= 3)) {
+    tasks.unshift({
+      id: "reset",
+      icon: "self_care",
+      title: "2-minute stress reset",
+      detail: "Turn exam nerves into energy before you study.",
+      path: "/reset?quick=1",
+      minutes: 2,
+    });
+  }
+
+  // After a poor night: fewer, shorter tasks. Sleep is when memory gets saved.
+  const tired = s.sleep === "poor";
+  const planned = tasks.slice(0, tired ? 2 : MAX_TASKS).map((t) => (tired ? { ...t, minutes: Math.max(2, Math.round(t.minutes / 2)) } : t));
   const sum = planned.reduce((a, t) => a + t.minutes, 0);
-  const focusMinutes = Math.max(sum, s.exam?.dailyMinutes || 0);
+  const focusMinutes = tired ? sum : Math.max(sum, s.exam?.dailyMinutes || 0);
 
   let headline;
-  if (s.exam && s.exam.daysLeft === 0) headline = `${s.exam.name} is today. Light review only, and rest well.`;
+  if (tired) headline = "Lighter day: you slept badly. Short review only, a walk, and an early night.";
+  else if (s.exam && s.exam.daysLeft === 0) headline = `${s.exam.name} is today. Light review only, and rest well.`;
   else if (examSoon) headline = `${s.exam.daysLeft} day${s.exam.daysLeft === 1 ? "" : "s"} to ${s.exam.name}. Focus on what you get wrong.`;
   else if (s.studiedToday) headline = "Good start today. Finish the list to keep your streak.";
   else headline = "Small steps every day beat one long night before the exam.";

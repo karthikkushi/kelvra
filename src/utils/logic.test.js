@@ -218,3 +218,60 @@ test("focus: no tab-leave rate from too little data", () => {
   const s = summarizeFocus([{ created_at: new Date().toISOString(), actual_min: 1, leaves: 1, pulled: ["phone"] }]);
   assert.equal(s.leavesPer25, null);
 });
+
+import { buildFamilyDigest, defaultShare, scoreTrend, whatsappLink } from "./family.js";
+import { topReason, parentMessage } from "./debrief.js";
+
+test("family digest: shares only what the student picked; effort first; never rank, mood or marks list", () => {
+  const stats = { name: "Asha", activeDays: 5, focusMinutes: 120, focusSessions: 4, topics: ["Optics", "Cells"], mistakesFixed: 3,
+    habit: { sentence: "When I finish dinner, I will review 10 cards.", done: 4, of: 5 }, answers: { count: 2, improved: 1 }, scoreTrend: "down" };
+  const d = buildFamilyDigest(stats, defaultShare(), "en", "Tough week, need Sunday off");
+  assert.match(d.text, /Studied on 5 of the last 7 days/);
+  assert.match(d.text, /Fixed 3 past mistakes/);
+  assert.match(d.text, /Tough week, need Sunday off/);
+  assert.ok(!/habit experiment/i.test(d.text), "habit is off by default");
+  assert.ok(!/Quiz scores/.test(d.text), "scores are off by default");
+  assert.ok(!/rank/i.test(d.lines.join(" ")), "never rank");
+  assert.match(d.text, /steady effort/);
+  assert.match(d.text, /avoid: comparing/);
+  const withScores = buildFamilyDigest(stats, { ...defaultShare(), scores: true, habit: true }, "en");
+  assert.match(withScores.text, /a bit lower \(working on it\)/);
+  assert.match(withScores.text, /done 4 of 5 days/);
+  const hi = buildFamilyDigest(stats, defaultShare(), "hi");
+  assert.match(hi.text, /पिछले 7 में से 5 दिन/);
+  assert.match(whatsappLink("a b"), /^https:\/\/wa\.me\/\?text=a%20b$/);
+});
+
+test("family digest: score trend compares this week with last week", () => {
+  const now = new Date("2026-11-05T12:00:00Z");
+  const s = (daysAgo, pct) => ({ created_at: new Date(now - daysAgo * 86400000).toISOString(), pct });
+  assert.equal(scoreTrend([s(1, 80), s(2, 70), s(9, 60)], now), "up");
+  assert.equal(scoreTrend([s(1, 60), s(9, 70)], now), "down");
+  assert.equal(scoreTrend([s(1, 70), s(9, 72)], now), "steady");
+  assert.equal(scoreTrend([s(1, 70)], now), null);
+});
+
+test("debrief: top reason picks the biggest cause; parent message never mentions marks or rank", () => {
+  assert.equal(topReason({ careless: 1, time: 2, nerves: 1 }).id, "time");
+  assert.equal(topReason({}), null);
+  const m = parentMessage({ test: "Physics mock", learned: "I rush unit conversions", fix: "check units for 10 seconds" });
+  assert.match(m, /Physics mock/);
+  assert.match(m, /I rush unit conversions/);
+  assert.match(m, /don't compare/);
+  assert.ok(!/\d+\s*\/\s*\d+|rank/i.test(m));
+});
+
+test("today plan: poor sleep gives a lighter plan; near exam adds the stress reset", () => {
+  const p = buildTodayPlan({ dueCards: 40, openMistakes: 5, weakTopic: { topic: "X", avg: 40 }, sleep: "poor" });
+  assert.equal(p.tasks.length, 2);
+  assert.match(p.headline, /Lighter day/);
+  assert.ok(p.tasks.every((t) => t.minutes <= 10));
+  const q = buildTodayPlan({ dueCards: 1, openMistakes: 0, exam: { name: "Bio", daysLeft: 2 } });
+  assert.equal(q.tasks[0].id, "reset");
+});
+
+test("family digest: a habit not done yet is shared without a '0 days' count", () => {
+  const d = buildFamilyDigest({ name: "A", activeDays: 1, habit: { sentence: "When X, I will Y.", done: 0, of: 3 } }, { habit: true }, "en");
+  assert.match(d.text, /Trying a new habit this week/);
+  assert.ok(!/0 of 3/.test(d.text));
+});

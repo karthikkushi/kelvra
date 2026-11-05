@@ -1,5 +1,5 @@
 // src/utils/gamification.js
-import { doc, setDoc, collection, query, orderBy, limit } from "firebase/firestore";
+import { doc, setDoc, collection, query, where, limit } from "firebase/firestore";
 import { db, saveLater, readDoc, readQuery } from "./firebase";
 
 const xpDoc = (userId) => doc(db, "leaderboard", userId);
@@ -141,11 +141,11 @@ export async function getUserXP(userId) {
   }
 }
 
-// Get this week's leaderboard. Old weeks' XP counts as 0, so a quiet student
-// does not stay on top from a previous week.
+// Get this week's leaderboard: ONLY students who chose to appear on it (opt-in; ranking can add
+// pressure, so nobody is listed by default). Old weeks' XP counts as 0.
 export async function getLeaderboard() {
   try {
-    const snap = await readQuery(query(collection(db, "leaderboard"), orderBy("weekly_xp", "desc"), limit(50)));
+    const snap = await readQuery(query(collection(db, "leaderboard"), where("public", "==", true), limit(200)));
     const week = currentWeekStart();
     return snap.docs
       .map((d) => ({ user_id: d.id, ...d.data() }))
@@ -155,4 +155,17 @@ export async function getLeaderboard() {
   } catch {
     return [];
   }
+}
+
+// Show or hide yourself on the leaderboard (off by default).
+export async function setLeaderboardVisibility(userId, visible, displayName) {
+  if (!db || !userId) return;
+  const current = await getUserXP(userId);
+  saveLater(setDoc(xpDoc(userId), {
+    public: !!visible,
+    display_name: displayName || current.display_name || null,
+    total_xp: current.total_xp || 0,
+    weekly_xp: Math.min(current.weekly_xp || 0, current.total_xp || 0),
+    updated_at: new Date().toISOString(),
+  }, { merge: true }), "Save leaderboard choice");
 }

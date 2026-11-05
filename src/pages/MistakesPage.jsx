@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { getMistakes, markMistake, deleteMistake, getConfidenceRecords } from "../utils/learning";
 import { calibrationSummary, LEVELS } from "../utils/confidence";
+import { findMistakePatterns } from "../utils/mentor";
+import { getMeta, setMeta } from "../utils/firebase";
 import { awardXP } from "../utils/gamification";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
@@ -95,6 +97,9 @@ export default function MistakesPage({ user }) {
   const [retest, setRetest] = useState(null);
   const [result, setResult] = useState(null);
   const [calibration, setCalibration] = useState(null);
+  const [patterns, setPatterns] = useState(null);   // { generated_at, count, patterns[] }
+  const [patBusy, setPatBusy] = useState(false);
+  const [patError, setPatError] = useState("");
 
   const load = () => getMistakes(user.id).then(setItems);
   useEffect(() => {
@@ -102,6 +107,7 @@ export default function MistakesPage({ user }) {
     let alive = true;
     getMistakes(user.id).then((list) => { if (alive) setItems(list); });
     getConfidenceRecords(user.id).then((recs) => { if (alive) setCalibration(calibrationSummary(recs)); });
+    getMeta(user.id, "mistake_patterns").then((p) => { if (alive && p?.patterns) setPatterns(p); });
     return () => { alive = false; };
   }, [user?.id]);
 
@@ -127,6 +133,20 @@ export default function MistakesPage({ user }) {
     if (fixed > 0 && user?.id) awardXP(user.id, "COMPLETE_QUIZ", {}, user);
     // Reload so mastered/open counts include the server's wrong_count updates
     setTimeout(load, 600);
+  };
+
+  const analyse = async () => {
+    setPatBusy(true); setPatError("");
+    try {
+      const list = await findMistakePatterns(open);
+      const saved = { generated_at: new Date().toISOString(), count: open.length, patterns: list };
+      setPatterns(saved);
+      setMeta(user.id, "mistake_patterns", saved);
+    } catch (err) {
+      setPatError(err.message);
+    } finally {
+      setPatBusy(false);
+    }
   };
 
   const remove = (m) => {
@@ -159,6 +179,36 @@ export default function MistakesPage({ user }) {
             </div>
           ) : (
             <>
+              {open.length >= 3 && (
+                <section className="mb-5 bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Why I lose marks</p>
+                    <button onClick={analyse} disabled={patBusy} className="text-xs font-bold text-primary-container hover:underline disabled:opacity-50">
+                      {patBusy ? "Looking for patterns…" : patterns ? "Refresh" : "Find my patterns"}
+                    </button>
+                  </div>
+                  {patError && <p role="alert" className="text-xs text-error mb-2">{patError}</p>}
+                  {patterns?.patterns?.length ? (
+                    <>
+                      <ul className="space-y-3">
+                        {patterns.patterns.map((p) => (
+                          <li key={p.name} className="bg-surface-container rounded-xl p-3">
+                            <p className="text-sm font-bold text-on-surface">{p.name}</p>
+                            <p className="text-sm text-on-surface-variant">{p.why}</p>
+                            <p className="text-sm text-primary-container mt-1"><strong>Fix this week:</strong> {p.fix}</p>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[11px] text-on-surface-variant/70 mt-2">
+                        Based on {patterns.count} open mistakes · {new Date(patterns.generated_at).toLocaleDateString("en-IN")}. AI analysis, so treat it as a starting point.
+                      </p>
+                    </>
+                  ) : !patBusy && (
+                    <p className="text-sm text-on-surface-variant">Kelvra can look across your mistakes and find the 2-3 habits that cost you the most marks.</p>
+                  )}
+                </section>
+              )}
+
               {calibration?.enough && (
                 <section className="mb-5 bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">How sure vs how right (last {calibration.total} answers)</p>

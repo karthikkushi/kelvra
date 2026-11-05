@@ -226,3 +226,29 @@ Give exactly 3 careers and 5 interview questions.`,
     interview: arr(data.interview).slice(0, 6).map((x) => ({ q: String(x.q || ""), hint: String(x.hint || "") })),
   };
 }
+
+// ── Mistake "why" report ──
+// Groups open mistakes into up to 3 recurring patterns with a fix each.
+export async function findMistakePatterns(mistakes) {
+  const items = mistakes.slice(0, 25).map((m, i) => {
+    const opt = (id) => m.options?.find((o) => o.id === id)?.text || id;
+    return `${i + 1}. [${m.topic}] Q: ${m.question} | chose: ${opt(m.chosen)} | correct: ${opt(m.correct)}${m.confident ? " | student was SURE" : ""}`;
+  }).join("\n");
+  const raw = await chat([
+    { role: "system", content: "You are a careful study coach. You find WHY a student loses marks. Reply with JSON only." },
+    {
+      role: "user",
+      content: `Here are a student's wrong quiz answers:\n${items}\n\nFind up to 3 recurring patterns (for example: confuses two similar terms, misreads what is asked, unit/sign slips, a missing core concept, memorised without understanding). Only report a pattern if at least 2 mistakes show it, unless there are fewer than 4 mistakes in total. Talk about the mistakes, never about the student's ability.\nReply as: {"patterns":[{"name":"short name","why":"one sentence on what goes wrong","fix":"one concrete thing to do this week","examples":[question numbers]}]}`,
+    },
+  ], { maxTokens: 700, temperature: 0.3 });
+  const match = raw.match(/\{[\s\S]*\}/);
+  let data;
+  try { data = JSON.parse(match?.[0]); } catch { /* handled below */ }
+  if (!Array.isArray(data?.patterns)) throw new Error("Could not read the pattern report. Please try again.");
+  return data.patterns.slice(0, 3).map((p) => ({
+    name: String(p.name || "").slice(0, 60),
+    why: String(p.why || "").slice(0, 240),
+    fix: String(p.fix || "").slice(0, 240),
+    examples: (Array.isArray(p.examples) ? p.examples : []).map(Number).filter((n) => n >= 1 && n <= mistakes.length).slice(0, 5),
+  })).filter((p) => p.name && p.fix);
+}

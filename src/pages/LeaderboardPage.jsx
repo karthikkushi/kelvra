@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import { getLeaderboard, getUserXP, xpToNextLevel, BADGES } from "../utils/gamification";
+import { getLeaderboard, getUserXP, xpToNextLevel, BADGES, setLeaderboardVisibility } from "../utils/gamification";
 
 export default function LeaderboardPage({ user }) {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -17,6 +17,14 @@ export default function LeaderboardPage({ user }) {
       setLoading(false);
     });
   }, [user]);
+
+  const isPublic = !!myXP?.public;
+  const toggleVisible = async () => {
+    const next = !isPublic;
+    setMyXP((x) => ({ ...x, public: next }));
+    await setLeaderboardVisibility(user.id, next, user?.user_metadata?.full_name?.split(" ")[0]);
+    setTimeout(() => getLeaderboard().then(setLeaderboard), 500);
+  };
 
   const myRank = leaderboard.findIndex((e) => e.user_id === user?.id) + 1;
   const displayName = (entry) => entry.display_name || "Student";
@@ -44,8 +52,20 @@ export default function LeaderboardPage({ user }) {
         <header className="mb-10">
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Competition</span>
           <h1 className="font-headline text-4xl font-extrabold tracking-tighter mt-2">Leaderboard</h1>
-          <p className="text-on-surface-variant mt-2">Top students this week · Resets every Monday</p>
+          <p className="text-on-surface-variant mt-2">Students who chose to join · Resets every Sunday</p>
         </header>
+
+        {/* Opt-in: nobody is ranked unless they choose to be */}
+        <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div>
+            <p className="text-sm font-bold text-on-surface">{isPublic ? "You are on the leaderboard" : "You are not on the leaderboard"}</p>
+            <p className="text-xs text-on-surface-variant">It's optional. Your XP, badges and progress work the same either way. Only your first name is shown.</p>
+          </div>
+          <button onClick={toggleVisible} disabled={!myXP}
+            className={`px-4 py-2.5 rounded-xl text-sm font-bold flex-shrink-0 ${isPublic ? "border border-outline-variant/30 text-on-surface-variant" : "bg-primary-container text-on-primary-container"}`}>
+            {isPublic ? "Hide me" : "Join the leaderboard"}
+          </button>
+        </div>
 
         {/* My stats card */}
         {myXP && (
@@ -115,7 +135,7 @@ export default function LeaderboardPage({ user }) {
           ) : leaderboard.length === 0 ? (
             <div className="text-center py-12">
               <span className="material-symbols-outlined text-4xl text-on-surface-variant mb-3 block">leaderboard</span>
-              <p className="text-on-surface-variant">No one has earned XP yet this week.</p>
+              <p className="text-on-surface-variant">No one has joined the leaderboard this week yet.</p>
               <p className="text-sm text-on-surface-variant/60 mt-1">Start studying to claim the #1 spot!</p>
             </div>
           ) : (
