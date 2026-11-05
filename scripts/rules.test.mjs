@@ -68,6 +68,11 @@ test("shared kits: anyone with the link can open and count a view, nothing else"
   await denied(updateDoc(doc(guest.db, "shared_kits", id), { topic: "Hacked" }));
   await denied(updateDoc(doc(guest.db, "shared_kits", id), { views: 1000 }));
   await denied(getDocs(collection(guest.db, "shared_kits")));
+  await denied(getDocs(collection(bob.db, "shared_kits")));
+  const { query, where } = await import("firebase/firestore");
+  const own = await getDocs(query(collection(alice.db, "shared_kits"), where("user_id", "==", alice.uid)));
+  assert.equal(own.size, 1);
+  await denied(getDocs(query(collection(bob.db, "shared_kits"), where("user_id", "==", alice.uid))));
   await denied(setDoc(doc(bob.db, "shared_kits", `zzz${run}`), { user_id: alice.uid, views: 0 }));
 });
 

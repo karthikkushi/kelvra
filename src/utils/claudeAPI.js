@@ -19,6 +19,8 @@ export async function groqFetch(body) {
 // Turn an /api/groq error into a sentence a student understands.
 export function aiErrorMessage(status, data) {
   if (status === 401) return "Your login expired. Please sign in again.";
+  // Our own limits and checks send a ready-to-show message (daily limit, verify email, too large)
+  if (["ai_limit", "email_not_verified"].includes(data?.error?.code) || status === 413) return data.error.message;
   if (status === 429) return "The AI is busy right now (rate limit). Wait a minute and try again.";
   if (status >= 500 && !data?.error?.message) return "The AI server had a problem. Try again in a moment.";
   return data?.error?.message || `AI request failed (${status}).`;

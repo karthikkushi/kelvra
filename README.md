@@ -78,8 +78,25 @@ npm run build       # production build into dist/
 
 The free Spark plan is enough to start and, unlike Supabase's free tier, does not pause the project when it is quiet.
 
+## Launch checklist (what you need to set on Vercel)
+
+| Setting | Why |
+|---|---|
+| `VITE_FIREBASE_*`, `GROQ_API_KEY` | Login, data and AI |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (Vercel > Storage > Upstash, free) | Real per-student AI limits. Without them the limit only counts per server instance. |
+| `AI_DAILY_LIMIT` (default 120), `AI_MINUTE_LIMIT` (default 15) | How many AI requests one student can make |
+| `VITE_LEGAL_NAME`, `VITE_CONTACT_EMAIL`, `VITE_GRIEVANCE_OFFICER` | Shown on `/privacy` and `/terms` |
+| Firebase > Authentication > Templates | Check the verification email's sender name and wording |
+| `firestore.rules` deployed | `npx firebase-tools deploy --only firestore:rules` |
+
+Already in the code: email verification before AI (`api/groq.js`), request size limits, per-student daily and per-minute
+AI limits (`api/_limits.js`), Download my data and Delete my account (Settings, `src/utils/account.js`), Privacy policy
+and Terms drafts (`src/pages/LegalPage.jsx`, marked "pending legal review" until `LEGAL_REVIEWED` is set to true),
+SPA deep links and security headers (`vercel.json`).
+
 ## Not done yet
 
+- Privacy policy and Terms are drafts written from what the app does; a lawyer must review them before launch.
 - Data from the old Supabase project was not copied over (that project is paused). New accounts start empty.
 - Photo and handwriting reading uses a Groq preview model, which Groq may retire at short notice.
 - Tests cover the AI server function, the learning/behaviour logic (scheduler, today plan, confidence, focus, habits, answer

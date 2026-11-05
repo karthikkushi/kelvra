@@ -1,16 +1,20 @@
 // Run: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { proxyGroq } from "./groq.js";
+import { proxyGroq, tooBig } from "./groq.js";
+import { _resetMemoryForTests, indiaDate } from "./_limits.js";
+import { beforeEach } from "node:test";
+
+beforeEach(() => _resetMemoryForTests());
 
 const env = { GROQ_API_KEY: "server-key", VITE_FIREBASE_API_KEY: "fb-key" };
 
-function fakeFetch({ loggedIn = true } = {}) {
+function fakeFetch({ loggedIn = true, verified = true, uid = "u1" } = {}) {
   const calls = [];
   const fetch = async (url, opts) => {
     calls.push({ url, opts });
     if (url.includes("accounts:lookup")) {
-      return { ok: loggedIn, status: loggedIn ? 200 : 400, json: async () => (loggedIn ? { users: [{ localId: "u1" }] } : { error: {} }) };
+      return { ok: loggedIn, status: loggedIn ? 200 : 400, json: async () => (loggedIn ? { users: [{ localId: uid, emailVerified: verified }] } : { error: {} }) };
     }
     return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "hi" } }] }) };
   };
@@ -69,9 +73,75 @@ test("bad requests and a missing server key fail clearly", async () => {
 
 test("Groq being unreachable returns 502 instead of crashing", async () => {
   const fetch = async (url) => {
-    if (url.includes("accounts:lookup")) return { ok: true, status: 200, json: async () => ({ users: [{}] }) };
+    if (url.includes("accounts:lookup")) return { ok: true, status: 200, json: async () => ({ users: [{ localId: "u502", emailVerified: true }] }) };
     throw new TypeError("fetch failed");
   };
   const r = await proxyGroq({ body: { messages: [{ role: "user", content: "x" }] }, token: "t", env, fetch });
   assert.equal(r.status, 502);
+});
+
+const ask = (fetch, e = env) => proxyGroq({ body: { messages: [{ role: "user", content: "x" }] }, token: "t", env: e, fetch });
+
+test("unverified email is refused (403) without calling Groq; can be switched off", async () => {
+  const { fetch, calls } = fakeFetch({ verified: false });
+  const r = await ask(fetch);
+  assert.equal(r.status, 403);
+  assert.equal(r.data.error.code, "email_not_verified");
+  assert.ok(!calls.some((c) => c.url.includes("groq.com")));
+  assert.equal((await ask(fakeFetch({ verified: false }).fetch, { ...env, AI_REQUIRE_VERIFIED_EMAIL: "false" })).status, 200);
+  assert.equal((await ask(fakeFetch({ verified: false }).fetch, { ...env, VITE_FIREBASE_EMULATOR: "true" })).status, 200);
+});
+
+test("daily limit per student: the call after the limit gets 429 with a clear message", async () => {
+  const e = { ...env, AI_DAILY_LIMIT: "3" };
+  const { fetch } = fakeFetch({ uid: "daily-user" });
+  for (let i = 0; i < 3; i++) assert.equal((await ask(fetch, e)).status, 200);
+  const r = await ask(fetch, e);
+  assert.equal(r.status, 429);
+  assert.equal(r.data.error.code, "ai_limit");
+  assert.match(r.data.error.message, /today's 3 AI requests/);
+  // Another student is not affected
+  assert.equal((await ask(fakeFetch({ uid: "other" }).fetch, e)).status, 200);
+});
+
+test("per-minute burst limit", async () => {
+  const e = { ...env, AI_MINUTE_LIMIT: "2" };
+  const { fetch } = fakeFetch({ uid: "burst" });
+  await ask(fetch, e); await ask(fetch, e);
+  const r = await ask(fetch, e);
+  assert.equal(r.status, 429);
+  assert.match(r.data.error.message, /one minute/);
+});
+
+test("uses Upstash Redis when configured, and allows the call if Redis is down", async () => {
+  const e = { ...env, UPSTASH_REDIS_REST_URL: "https://redis.example", UPSTASH_REDIS_REST_TOKEN: "rt", AI_DAILY_LIMIT: "5" };
+  const counts = {};
+  const base = fakeFetch({ uid: "r1" }).fetch;
+  const fetch = async (url, opts) => {
+    if (url.startsWith("https://redis.example")) {
+      const [[, key]] = JSON.parse(opts.body);
+      counts[key] = (counts[key] || 0) + 1;
+      return { ok: true, status: 200, json: async () => [{ result: counts[key] }, { result: 1 }] };
+    }
+    return base(url, opts);
+  };
+  for (let i = 0; i < 5; i++) assert.equal((await ask(fetch, e)).status, 200);
+  assert.equal((await ask(fetch, e)).status, 429);
+  assert.ok(Object.keys(counts).some((k) => k === `ai:r1:${indiaDate()}`));
+  const down = async (url, opts) => (url.startsWith("https://redis.example") ? { ok: false, status: 500 } : base(url, opts));
+  assert.equal((await ask(down, e)).status, 200);
+});
+
+test("oversized requests are refused (413)", async () => {
+  assert.equal(tooBig([{ role: "user", content: "x".repeat(70000) }]) != null, true);
+  assert.equal(tooBig(Array(41).fill({ role: "user", content: "x" })) != null, true);
+  assert.equal(tooBig([{ role: "user", content: [{ type: "image_url", image_url: { url: "x".repeat(6_000_000) } }] }]) != null, true);
+  assert.equal(tooBig([{ role: "user", content: "fine" }]), null);
+  const r = await proxyGroq({ body: { messages: [{ role: "user", content: "x".repeat(70000) }] }, token: "t", env, fetch: fakeFetch().fetch });
+  assert.equal(r.status, 413);
+});
+
+test("India date flips at midnight IST (18:30 UTC)", () => {
+  assert.equal(indiaDate(Date.parse("2026-11-05T18:29:00Z")), "2026-11-05");
+  assert.equal(indiaDate(Date.parse("2026-11-05T18:31:00Z")), "2026-11-06");
 });

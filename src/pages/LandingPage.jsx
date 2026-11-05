@@ -282,6 +282,10 @@ export default function LandingPage() {
             <span className="font-headline font-bold text-on-surface tracking-tighter">Kelvra</span>
           </div>
           <p className="text-xs text-on-surface-variant">© {new Date().getFullYear()} Kelvra · Made for students everywhere</p>
+          <div className="flex gap-5 text-xs text-on-surface-variant">
+            <a href="/privacy" className="hover:text-primary-container">Privacy</a>
+            <a href="/terms" className="hover:text-primary-container">Terms</a>
+          </div>
         </div>
       </footer>
 

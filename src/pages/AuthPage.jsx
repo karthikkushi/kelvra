@@ -215,6 +215,11 @@ export default function AuthPage() {
             </button>
           </form>
 
+          <p className="text-[11px] text-on-surface-variant/80 text-center mt-4">
+            By continuing you agree to Kelvra's <a href="/terms" className="underline hover:text-primary-container">Terms</a> and{" "}
+            <a href="/privacy" className="underline hover:text-primary-container">Privacy policy</a>. You must be 13 or older.
+          </p>
+
           {/* Toggle */}
           <p className="text-center mt-6 text-sm text-on-surface-variant">
             {mode === "login" ? "No account?" : "Already have one?"}

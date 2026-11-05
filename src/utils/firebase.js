@@ -15,7 +15,7 @@
 import { initializeApp } from "firebase/app";
 import {
   getAuth, connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, updateProfile, sendPasswordResetEmail,
+  signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, updateProfile, sendPasswordResetEmail, sendEmailVerification,
 } from "firebase/auth";
 import {
   initializeFirestore, connectFirestoreEmulator, persistentLocalCache, persistentMultipleTabManager,
@@ -132,6 +132,8 @@ async function buildUser(fbUser) {
   return {
     id: fbUser.uid,
     email: fbUser.email,
+    email_verified: fbUser.emailVerified,
+    provider: fbUser.providerData?.[0]?.providerId || "password",
     user_metadata: { ...profile, full_name: profile.full_name || fbUser.displayName || "" },
   };
 }
@@ -157,7 +159,25 @@ export function getCurrentUser() {
   return currentUser ?? null;
 }
 
-async function refreshUser() {
+export async function resendVerification() {
+  if (!auth?.currentUser) return { error: new Error("Please sign in again.") };
+  try {
+    await sendEmailVerification(auth.currentUser, { url: `${window.location.origin}/dashboard` });
+    return { error: null };
+  } catch (err) {
+    return { error: new Error(friendlyAuthError(err)) };
+  }
+}
+
+// Re-reads the account from Firebase (e.g. after the student clicks the link in the email).
+export async function reloadUser() {
+  if (!auth?.currentUser) return null;
+  await auth.currentUser.reload();
+  await refreshUser();
+  return getCurrentUser();
+}
+
+export async function refreshUser() {
   if (auth?.currentUser) emit(await buildUser(auth.currentUser));
 }
 
@@ -171,6 +191,8 @@ export async function signUp(email, password, fullName) {
   if (!auth) return notReady();
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
+    // Verification link (needed before AI features work); don't block sign-up if it fails
+    saveLater(sendEmailVerification(cred.user, { url: `${window.location.origin}/dashboard` }), "Send verification email");
     await updateProfile(cred.user, { displayName: fullName });
     await setDoc(doc(db, "users", cred.user.uid), { full_name: fullName, created_at: nowIso() }, { merge: true });
     await refreshUser();

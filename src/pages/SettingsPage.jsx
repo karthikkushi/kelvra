@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import DataControls from "../components/DataControls";
 import { signOut, updateUserProfile } from "../utils/firebase";
 
 export default function SettingsPage({ user }) {
@@ -153,6 +154,8 @@ export default function SettingsPage({ user }) {
               </button>
             </div>
           </section>
+
+          <DataControls user={user} />
 
         </div>
       </main>

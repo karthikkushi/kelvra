@@ -38,7 +38,8 @@ service cloud.firestore {
     // Only the signed-in owner can create or delete it; anyone can add exactly one view.
     match /shared_kits/{shareId} {
       allow get: if true;
-      allow list: if false;
+      // Listing is only allowed for your own kits (for "download my data" and "delete my account")
+      allow list: if signedIn() && resource.data.user_id == request.auth.uid;
       allow create: if signedIn()
         && shareId.size() >= 12
         && request.resource.data.user_id == request.auth.uid

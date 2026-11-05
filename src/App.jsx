@@ -28,6 +28,8 @@ const HabitsPage      = lazy(() => import("./pages/HabitsPage"));
 const FamilyPage      = lazy(() => import("./pages/FamilyPage"));
 const DebriefPage     = lazy(() => import("./pages/DebriefPage"));
 const ResetPage       = lazy(() => import("./pages/ResetPage"));
+const LegalPage       = lazy(() => import("./pages/LegalPage"));
+const VerifyEmailBanner = lazy(() => import("./components/VerifyEmailBanner"));
 const SharedKitPage   = lazy(() => import("./pages/SharedKitPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 
@@ -94,6 +96,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
+      {user && !user.email_verified && <Suspense fallback={null}><VerifyEmailBanner user={user} /></Suspense>}
       <PageErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -119,6 +122,8 @@ export default function App() {
             <Route path="/debrief"     element={guard(<DebriefPage     user={user} />)} />
             <Route path="/reset"       element={guard(<ResetPage       user={user} />)} />
             <Route path="/leaderboard" element={guard(<LeaderboardPage user={user} />)} />
+            <Route path="/privacy"     element={<LegalPage doc="privacy" />} />
+            <Route path="/terms"       element={<LegalPage doc="terms" />} />
             <Route path="/shared/:shareId" element={firebaseReady ? <SharedKitPage /> : <SetupNeeded />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

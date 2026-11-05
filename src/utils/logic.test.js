@@ -283,7 +283,7 @@ test("nav: 5 sections hold every app page exactly once (no feature lost from the
   assert.equal(SECTIONS.length, 5);
   const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
   const routes = [...app.matchAll(/path="(\/[a-z]+)"/g)].map((m) => m[1])
-    .filter((p) => !["/auth", "/onboarding", "/shared"].includes(p));
+    .filter((p) => !["/auth", "/onboarding", "/shared", "/privacy", "/terms"].includes(p));
   const navPaths = ALL_PAGES.map((p) => p.path);
   for (const r of routes) assert.ok(navPaths.includes(r), `route ${r} is missing from the menu`);
   assert.equal(new Set(ALL_PAGES.map((p) => p.id)).size, ALL_PAGES.length, "page ids unique");
