@@ -29,6 +29,10 @@ npm run build       # production build into dist/
 - **AI:** the browser calls `/api/groq` ([`api/groq.js`](api/groq.js), a Vercel function). It checks the Firebase ID token,
   adds the Groq key from the server-only `GROQ_API_KEY`, and picks the model: `openai/gpt-oss-120b` for text,
   `qwen/qwen3.8-27b` for photos and handwriting. The key is never sent to the browser.
+- **Navigation:** 5 sections instead of 18 links: **Home** (today's plan), **Learn** (study kit, flashcards, AI tutor, explore),
+  **Practice** (review, quiz, mistakes, answer coach), **Coach** (mentor, habits, focus, test debrief, stress reset) and **Me**
+  (progress, exam forecast, family update, leaderboard, settings). Defined in [`src/utils/nav.js`](src/utils/nav.js); a test checks
+  that every page is in the menu.
 - **Mentor:** [`src/pages/MentorPage.jsx`](src/pages/MentorPage.jsx) and [`src/utils/mentor.js`](src/utils/mentor.js).
 - **Learning features** (data in [`src/utils/learning.js`](src/utils/learning.js), all offline-capable):
   - **Mistake notebook** (`/mistakes`): every wrong quiz answer is saved by topic; retest until mastered; "ask my mentor" per mistake.

@@ -275,3 +275,26 @@ test("family digest: a habit not done yet is shared without a '0 days' count", (
   assert.match(d.text, /Trying a new habit this week/);
   assert.ok(!/0 of 3/.test(d.text));
 });
+
+import { SECTIONS, ALL_PAGES, sectionOf, sectionTarget } from "./nav.js";
+import { readFileSync } from "node:fs";
+
+test("nav: 5 sections hold every app page exactly once (no feature lost from the menu)", () => {
+  assert.equal(SECTIONS.length, 5);
+  const app = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
+  const routes = [...app.matchAll(/path="(\/[a-z]+)"/g)].map((m) => m[1])
+    .filter((p) => !["/auth", "/onboarding", "/shared"].includes(p));
+  const navPaths = ALL_PAGES.map((p) => p.path);
+  for (const r of routes) assert.ok(navPaths.includes(r), `route ${r} is missing from the menu`);
+  assert.equal(new Set(ALL_PAGES.map((p) => p.id)).size, ALL_PAGES.length, "page ids unique");
+  assert.ok(SECTIONS.every((s) => s.pages.length <= 5), "no section has more than 5 pages");
+});
+
+test("nav: section lookup and last-used page", () => {
+  assert.equal(sectionOf("mistakes").id, "practice");
+  assert.equal(sectionOf("unknown").id, "home");
+  const coach = SECTIONS.find((s) => s.id === "coach");
+  assert.equal(sectionTarget(coach, {}), "/mentor");
+  assert.equal(sectionTarget(coach, { coach: "habits" }), "/habits");
+  assert.equal(sectionTarget(coach, { coach: "gone" }), "/mentor");
+});
