@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "./DashboardPage";
+import Sidebar from "../components/Sidebar";
 import {
   generateFlashcards,
   generateQuiz,
@@ -8,11 +8,10 @@ import {
   generateStudyPlan,
   extractTextFromImage,
 } from "../utils/claudeAPI";
-import { saveStudySession } from "../utils/supabase";
+import { saveStudySession } from "../utils/firebase";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled } from "../utils/voice";
 import { awardXP } from "../utils/gamification";
 import { shareStudyKit } from "../utils/sharing";
-import { exportStudyKitPDF } from "../utils/exportPDF";
 import MnemonicCard from "../components/MnemonicCard";
 import { handwritingToText } from "../utils/claudeAPI";
 import { saveFlashcardsOffline } from "../utils/offlineStorage";
@@ -217,8 +216,13 @@ export default function StudyPage({ user }) {
     setPdfExtracting(true);
     setError("");
     try {
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      // The worker must be the same pdf.js version as the library, so we ship it with the app
+      // (this also lets PDF reading work offline).
+      const [pdfjsLib, worker] = await Promise.all([
+        import("pdfjs-dist"),
+        import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+      ]);
+      pdfjsLib.GlobalWorkerOptions.workerSrc = worker.default;
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
@@ -230,8 +234,11 @@ export default function StudyPage({ user }) {
       if (!fullText.trim()) throw new Error("No text found. Try a text-based PDF, not a scanned image.");
       setPdfText(fullText);
       setPdfInfo({ name: file.name.replace(/\.pdf$/i, ""), pages: pdf.numPages });
-    } catch {
-      setError("Could not read PDF. Try a text-based PDF, not a scanned image.");
+    } catch (err) {
+      console.error("PDF read error:", err);
+      setError(err?.message?.startsWith("No text found")
+        ? `${err.message} For scanned pages, use the Upload Image tab.`
+        : "Could not read this PDF. It may be password-protected or damaged. Try another file, or upload photos of the pages instead.");
     } finally {
       setPdfExtracting(false);
     }
@@ -315,16 +322,18 @@ export default function StudyPage({ user }) {
 
     try {
       const generated = {};
+      let firstError = "";
+      const keep = (e) => { firstError ||= e?.message; };
 
       // Groq handles parallel requests fine — all 4 at once
       await Promise.allSettled([
-        outputs.has("summary")    && generateSummary(content, outputLang).then((r) => (generated.summary = r)).catch(() => {}),
-        outputs.has("flashcards") && generateFlashcards(content, outputLang).then((r) => (generated.flashcards = r)).catch(() => {}),
-        outputs.has("quiz")       && generateQuiz(content, outputLang).then((r) => (generated.quiz = r)).catch(() => {}),
-        outputs.has("plan")       && generateStudyPlan(content, outputLang).then((r) => (generated.plan = r)).catch(() => {}),
+        outputs.has("summary")    && generateSummary(content, outputLang).then((r) => (generated.summary = r)).catch(keep),
+        outputs.has("flashcards") && generateFlashcards(content, outputLang).then((r) => (generated.flashcards = r)).catch(keep),
+        outputs.has("quiz")       && generateQuiz(content, outputLang).then((r) => (generated.quiz = r)).catch(keep),
+        outputs.has("plan")       && generateStudyPlan(content, outputLang).then((r) => (generated.plan = r)).catch(keep),
       ]);
 
-      if (Object.keys(generated).length === 0) throw new Error("Nothing generated. Check your GROQ_API_KEY in the .env file.");
+      if (Object.keys(generated).length === 0) throw new Error(firstError || "The AI returned nothing. Please try again.");
       setResults(generated);
       if (user?.id) awardXP(user.id, "GENERATE_KIT", {}, user);
       if (voiceBuddy && generated.summary?.paragraphs?.[0]) {
@@ -333,14 +342,14 @@ export default function StudyPage({ user }) {
       const first = ["summary","flashcards","quiz","plan"].find((k) => generated[k]);
       if (first) setActiveResult(first);
 
-      // Save session to Supabase (non-blocking)
+      // Save session (non-blocking, works offline)
       if (user?.id) {
         try {
           await saveStudySession(user.id, getTopicName(), generated);
         } catch { /* never block UI */ }
       }
     } catch (err) {
-      setError(err.message || "Something went wrong. Check your API key.");
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       clearInterval(stepInterval);
       setLoading(false);
@@ -697,9 +706,12 @@ export default function StudyPage({ user }) {
                 onClick={async () => {
                   setExporting(true);
                   try {
-                    exportStudyKitPDF(getContent() || "Study Kit", results);
+                    // jsPDF is large, so it is only downloaded when someone exports
+                    const { exportStudyKitPDF } = await import("../utils/exportPDF");
+                    exportStudyKitPDF(getTopicName() || "Study Kit", results);
                   } catch (err) {
                     console.error("PDF export error:", err);
+                    setError("Could not create the PDF. Please try again.");
                   }
                   setExporting(false);
                 }}
@@ -728,23 +740,6 @@ export default function StudyPage({ user }) {
         )}
       </main>
 
-      {/* Mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {[
-          { icon: "dashboard", label: "Home",  path: "/dashboard" },
-          { icon: "menu_book", label: "Study", path: "/study", active: true },
-          { icon: "style",     label: "Cards", path: "/flashcards" },
-          { icon: "insights",  label: "Stats", path: "/progress" },
-        ].map((item) => (
-          <div key={item.label} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
-            <span className="material-symbols-outlined"
-              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
-          </div>
-        ))}
-      </nav>
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>

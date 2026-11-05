@@ -1,17 +1,20 @@
 // src/utils/sharing.js
-import { supabase } from "./supabase";
+import { doc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { db, saveLater, withTimeout, readDoc } from "./firebase";
 
-// Generate a random share ID
+// Random, hard-to-guess share ID (16 characters, a-z0-9)
 function generateShareId() {
-  return Math.random().toString(36).substring(2, 10) +
-         Math.random().toString(36).substring(2, 10);
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
 }
 
 // Share a study kit — returns a share URL
 export async function shareStudyKit(userId, topic, results) {
   try {
     const shareId = generateShareId();
-    const { error } = await supabase.from("shared_kits").insert({
+    if (!db || !userId) throw new Error("Please sign in to share.");
+    if (!navigator.onLine) throw new Error("You are offline. Connect to the internet to share a study kit.");
+    await withTimeout(setDoc(doc(db, "shared_kits", shareId), {
       share_id: shareId,
       user_id: userId,
       topic,
@@ -19,8 +22,9 @@ export async function shareStudyKit(userId, topic, results) {
       flashcards: results.flashcards ? JSON.stringify(results.flashcards) : null,
       quiz:       results.quiz       ? JSON.stringify(results.quiz)       : null,
       plan:       results.plan       ? JSON.stringify(results.plan)       : null,
-    });
-    if (error) throw error;
+      views: 0,
+      created_at: new Date().toISOString(),
+    }), 10000);
     return {
       success: true,
       shareId,
@@ -34,18 +38,13 @@ export async function shareStudyKit(userId, topic, results) {
 // Get a shared kit by ID
 export async function getSharedKit(shareId) {
   try {
-    const { data, error } = await supabase
-      .from("shared_kits")
-      .select("*")
-      .eq("share_id", shareId)
-      .single();
-    if (error) throw error;
+    if (!db) throw new Error("The app is not connected to its database yet.");
+    const snap = await readDoc(doc(db, "shared_kits", shareId));
+    if (!snap.exists()) throw new Error("This study kit does not exist or was removed.");
+    const data = snap.data();
 
-    // Increment view count
-    await supabase
-      .from("shared_kits")
-      .update({ views: (data.views || 0) + 1 })
-      .eq("share_id", shareId);
+    // Count the view (best effort)
+    saveLater(updateDoc(doc(db, "shared_kits", shareId), { views: increment(1) }), "Count view");
 
     return {
       success: true,

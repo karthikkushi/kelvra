@@ -1,337 +1,291 @@
 import { useNavigate } from "react-router-dom";
 
-const STATS = [
-  { value: "10",      label: "Languages" },
-  { value: "4",       label: "AI Agents" },
-  { value: "Free",    label: "Forever plan" },
-];
+const filled = { fontVariationSettings: "'FILL' 1" };
 
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    icon: "upload_file",
-    title: "Add your material",
-    desc: "Paste notes, type a topic, upload a PDF or photo of your textbook. Any format works.",
-  },
-  {
-    step: "02",
-    icon: "auto_awesome",
-    title: "AI builds your study kit",
-    desc: "In seconds, Kelvra generates flashcards, a quiz, a summary and a personalized 5-day study plan.",
-  },
-  {
-    step: "03",
-    icon: "trending_up",
-    title: "Study smarter every day",
-    desc: "Your AI coach tracks progress, finds weak spots and tells you exactly what to study next.",
-  },
+const STEPS = [
+  { icon: "upload_file",  title: "Add your material",   desc: "Paste notes, type a topic, or upload a PDF, a photo of a textbook page, or handwritten notes." },
+  { icon: "auto_awesome", title: "Get your study kit",  desc: "Kelvra makes flashcards, a quiz, a summary and a 5-day plan from your own material." },
+  { icon: "diversity_3",  title: "Grow with a mentor",  desc: "Your AI mentor reads your scores and exam date, then tells you what to do next and why it matters." },
 ];
 
 const FEATURES = [
-  {
-    icon: "style",
-    title: "AI Flashcards",
-    desc: "Auto-generated from any content. Flip, rate, repeat. Spaced repetition built in.",
-    color: "text-primary-container",
-    bg: "bg-primary-container/10",
-  },
-  {
-    icon: "quiz",
-    title: "Adaptive Quiz",
-    desc: "MCQ quizzes that get harder as you improve. Instant explanations after every answer.",
-    color: "text-secondary",
-    bg: "bg-secondary-container/20",
-  },
-  {
-    icon: "summarize",
-    title: "Smart Summary",
-    desc: "Dense notes distilled into clear paragraphs and key bullet points in seconds.",
-    color: "text-tertiary-fixed-dim",
-    bg: "bg-tertiary-container/20",
-  },
-  {
-    icon: "calendar_today",
-    title: "Study Plan",
-    desc: "5-day personalized plan built from your material. Day-by-day tasks and time estimates.",
-    color: "text-primary-container",
-    bg: "bg-primary-container/10",
-  },
-  {
-    icon: "record_voice_over",
-    title: "Voice Buddy",
-    desc: "AI reads your flashcards and quiz questions aloud. Study hands-free, eyes-free.",
-    color: "text-secondary",
-    bg: "bg-secondary-container/20",
-  },
-  {
-    icon: "translate",
-    title: "10 Languages",
-    desc: "Generate study materials in Hindi, Tamil, Arabic, Spanish and more. Study in your language.",
-    color: "text-tertiary-fixed-dim",
-    bg: "bg-tertiary-container/20",
-  },
+  { icon: "style",             title: "Flashcards",        desc: "Made from your notes. Flip, review, and save sets to study offline." },
+  { icon: "quiz",              title: "Quizzes",           desc: "Multiple-choice questions with an explanation after every answer." },
+  { icon: "summarize",         title: "Summaries",         desc: "Long notes turned into short paragraphs and key points." },
+  { icon: "psychology",        title: "Socratic tutor",    desc: "Answers your questions with questions, so you work it out yourself." },
+  { icon: "smart_toy",         title: "Study agents",      desc: "A planner, a progress tracker, a review coach and an exam-readiness check." },
+  { icon: "translate",         title: "10 languages",      desc: "Get material in English, Hindi, Tamil, Arabic, Spanish and more." },
+  { icon: "draw",              title: "Handwriting & photos", desc: "Snap a page or your handwritten notes and turn them into text." },
+  { icon: "cloud_off",         title: "Works offline",     desc: "Your progress and saved cards open without internet and sync later." },
+];
+
+const MENTOR_POINTS = [
+  { icon: "insights",       text: "Knows your real quiz scores, streak and exam date" },
+  { icon: "public",         text: "Shows where a topic is used in real life and in jobs" },
+  { icon: "flag",           text: "Sets 3 small goals each week and checks them off with you" },
+  { icon: "favorite",       text: "Honest when you're behind, and helps you get back on track" },
 ];
 
 const FAQS = [
-  {
-    q: "Is Kelvra really free?",
-    a: "Yes. The core features — AI flashcards, quiz, summary, study plan — are completely free. No credit card needed.",
-  },
-  {
-    q: "What subjects does Kelvra support?",
-    a: "All of them. NEET, JEE, CA, UPSC, engineering, law, languages — if you can paste or upload the content, Kelvra can study it.",
-  },
-  {
-    q: "How is Kelvra different from Anki or Quizlet?",
-    a: "Those tools require you to manually create cards. Kelvra generates everything from your own material automatically using AI — flashcards, quiz, summary and study plan all at once.",
-  },
-  {
-    q: "Does it work in Hindi and Tamil?",
-    a: "Yes. You can input content in any language and get study materials in English, Hindi, Tamil, Arabic, Spanish and 5 more languages.",
-  },
+  { q: "Is Kelvra free?", a: "Yes, you can sign up and use every feature without paying or adding a card." },
+  { q: "Which subjects work?", a: "Any subject you have notes for: school, college, competitive exams, languages or professional skills. If you can paste it, photograph it or upload it as a PDF, Kelvra can study it with you." },
+  { q: "What does the AI mentor actually do?", a: "It looks at your quiz scores, weak topics, study streak and exam date, then gives practical advice: a plan for the week, how a topic is used in the real world, career ideas, or help when you feel stuck. It is an AI, so check important facts like exam rules with your teacher." },
+  { q: "Does it work without internet?", a: "Partly. Your dashboard, progress, saved flashcards and goals open offline, and anything you change is saved and synced when you reconnect. Making new material with AI needs internet." },
+  { q: "Who can see my notes and scores?", a: "Only you. Your study data is stored under your account and protected by database security rules. A study kit becomes public only if you choose to share its link." },
 ];
+
+function HeroPreview() {
+  return (
+    <div className="relative" aria-hidden="true">
+      <div className="absolute -inset-6 bg-primary-container/10 blur-3xl rounded-full" />
+      <div className="relative bg-surface-container-low border border-outline-variant/15 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3">
+        <div className="flex items-center gap-2 pb-3 border-b border-outline-variant/10">
+          <div className="w-2.5 h-2.5 rounded-full bg-error/60" />
+          <div className="w-2.5 h-2.5 rounded-full bg-tertiary-fixed-dim/60" />
+          <div className="w-2.5 h-2.5 rounded-full bg-primary-container/60" />
+          <span className="ml-2 text-[10px] uppercase tracking-widest text-on-surface-variant">Your study kit · Photosynthesis</span>
+        </div>
+        <div className="bg-surface-container rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-primary-container text-sm">style</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-container">Flashcard 1 of 8</span>
+          </div>
+          <p className="text-sm font-medium text-on-surface">Where in the plant cell does photosynthesis happen?</p>
+          <p className="text-xs text-on-surface-variant mt-2 pt-2 border-t border-outline-variant/10">
+            In the chloroplasts: light reactions in the thylakoids, the Calvin cycle in the stroma.
+          </p>
+        </div>
+        <div className="bg-surface-container rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="material-symbols-outlined text-secondary text-sm">quiz</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Quiz</span>
+          </div>
+          <p className="text-sm font-medium text-on-surface mb-2">What powers the Calvin cycle directly?</p>
+          <div className="grid grid-cols-2 gap-2">
+            {["Glucose", "ATP + NADPH", "CO₂", "Water"].map((o, i) => (
+              <div key={o} className={`text-xs px-3 py-2 rounded-lg ${i === 1 ? "bg-primary-container/20 text-primary-container border border-primary-container/30" : "bg-surface-container-low text-on-surface-variant"}`}>{o}</div>
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2 items-start">
+          <div className="w-7 h-7 rounded-full bg-primary-container/15 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-primary-container text-xs" style={filled}>diversity_3</span>
+          </div>
+          <div className="bg-surface-container rounded-2xl rounded-tl-sm px-3 py-2 text-xs text-on-surface-variant">
+            You scored 55% on <strong className="text-on-surface">Calvin cycle</strong>. Food scientists use it to grow better crops. Let's do 2 short quizzes today?
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const start = () => navigate("/auth");
 
   return (
     <div className="min-h-screen bg-background text-on-background font-body overflow-x-hidden">
-
-      {/* ── Background blobs ── */}
       <div className="fixed inset-0 -z-10 pointer-events-none overflow-hidden">
         <div className="absolute top-[-15%] right-[-10%] w-[50%] h-[50%] bg-primary-container/5 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary-container/5 rounded-full blur-[120px]" />
       </div>
 
-      {/* ── NAVBAR ── */}
+      {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/10">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+          <a href="#top" className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-primary-container rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-on-primary-container text-sm"
-                style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <span className="material-symbols-outlined text-on-primary-container text-sm" style={filled}>auto_awesome</span>
             </div>
             <span className="font-headline font-bold text-lg tracking-tighter text-on-surface">Kelvra</span>
+          </a>
+          <div className="hidden md:flex items-center gap-7 text-sm text-on-surface-variant">
+            <a href="#how" className="hover:text-on-surface transition-colors">How it works</a>
+            <a href="#mentor" className="hover:text-on-surface transition-colors">Mentor</a>
+            <a href="#features" className="hover:text-on-surface transition-colors">Features</a>
+            <a href="#faq" className="hover:text-on-surface transition-colors">FAQ</a>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/auth")}
-              className="hidden sm:block text-on-surface-variant hover:text-on-surface transition-colors text-sm font-medium">
-              Sign in
-            </button>
-            <button
-              onClick={() => navigate("/auth")}
-              className="bg-primary-container text-on-primary-container font-bold px-5 py-2.5 rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary-container/20">
-              Get Started Free
+          <div className="flex items-center gap-3">
+            <button onClick={start} className="hidden sm:block text-on-surface-variant hover:text-on-surface transition-colors text-sm font-medium">Sign in</button>
+            <button onClick={start}
+              className="bg-primary-container text-on-primary-container font-bold px-4 sm:px-5 py-2.5 rounded-full text-sm hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary-container/20">
+              Get started
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ── HERO ── */}
-      <section className="pt-32 pb-20 px-6 max-w-6xl mx-auto text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-primary-container/10 border border-primary-container/20 px-4 py-2 rounded-full mb-8">
-          <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
-          <span className="text-primary-container text-xs font-bold uppercase tracking-widest">AI-Powered Study Companion</span>
-        </div>
-
-        <h1 className="font-headline text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tighter text-on-surface leading-[1.05] mb-6">
-          Study Smarter.<br />
-          <span className="text-primary-container">Not Harder.</span>
-        </h1>
-
-        <p className="text-on-surface-variant text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-          Paste your notes or upload a PDF. Kelvra's AI instantly creates flashcards, a quiz, a summary and a personalized study plan — in any language.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-          <button
-            onClick={() => navigate("/auth")}
-            className="group w-full sm:w-auto flex items-center justify-center gap-3 bg-primary-container text-on-primary-container font-headline font-bold px-8 py-4 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_40px_rgba(110,231,183,0.2)]">
-            Start Studying Free
-            <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-          </button>
-          <button
-            onClick={() => navigate("/auth")}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 border border-outline-variant/30 text-on-surface-variant px-8 py-4 rounded-2xl text-base hover:bg-surface-container-low transition-all font-medium">
-            <span className="material-symbols-outlined text-sm">play_circle</span>
-            See how it works
-          </button>
-        </div>
-
-        {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
-          {STATS.map((s) => (
-            <div key={s.label} className="bg-surface-container-low border border-outline-variant/10 rounded-xl px-4 py-4 text-center">
-              <div className="font-headline text-2xl font-extrabold text-primary-container">{s.value}</div>
-              <div className="text-xs text-on-surface-variant uppercase tracking-widest mt-1">{s.label}</div>
+      <main id="top">
+        {/* Hero */}
+        <section className="pt-28 sm:pt-32 pb-16 px-4 sm:px-6 max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 bg-primary-container/10 border border-primary-container/20 px-3.5 py-1.5 rounded-full mb-6">
+              <span className="w-2 h-2 rounded-full bg-primary-container animate-pulse" />
+              <span className="text-primary-container text-[11px] font-bold uppercase tracking-widest">New: your own AI mentor</span>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section className="py-20 px-6 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">How it works</span>
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
-            From notes to mastery<br />in 3 steps
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-          {/* Connector line on desktop */}
-          <div className="hidden md:block absolute top-12 left-[20%] right-[20%] h-px bg-gradient-to-r from-transparent via-primary-container/30 to-transparent" />
-
-          {HOW_IT_WORKS.map((step, i) => (
-            <div key={i} className="relative bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8 text-center hover:border-primary-container/20 transition-all group">
-              <div className="absolute -top-3 left-8 bg-primary-container/10 border border-primary-container/20 px-3 py-1 rounded-full">
-                <span className="text-primary-container text-xs font-bold">{step.step}</span>
-              </div>
-              <div className="w-14 h-14 bg-surface-container-highest rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:bg-primary-container/10 transition-colors">
-                <span className="material-symbols-outlined text-primary-container text-2xl">{step.icon}</span>
-              </div>
-              <h3 className="font-headline text-xl font-bold text-on-surface mb-3">{step.title}</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">{step.desc}</p>
+            <h1 className="font-headline text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tighter text-on-surface leading-[1.05] mb-5">
+              Your notes in.<br />
+              <span className="text-primary-container">A study kit and a mentor out.</span>
+            </h1>
+            <p className="text-on-surface-variant text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+              Upload a PDF, a photo or your handwritten notes. Kelvra turns them into flashcards, a quiz, a summary and a plan,
+              then a mentor helps you stay on track until exam day.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+              <button onClick={start}
+                className="group w-full sm:w-auto flex items-center justify-center gap-2 bg-primary-container text-on-primary-container font-headline font-bold px-7 py-4 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_40px_rgba(110,231,183,0.2)]">
+                Start studying free
+                <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+              <a href="#how"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 border border-outline-variant/30 text-on-surface-variant px-7 py-4 rounded-2xl hover:bg-surface-container-low transition-all font-medium">
+                See how it works
+              </a>
             </div>
-          ))}
-        </div>
-      </section>
+            <p className="text-xs text-on-surface-variant/70 mt-5">No credit card · 10 languages · Installs on your phone</p>
+          </div>
+          <HeroPreview />
+        </section>
 
-      {/* ── FEATURES GRID ── */}
-      <section className="py-20 px-6 max-w-6xl mx-auto">
-        <div className="text-center mb-14">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Everything you need</span>
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
-            One app. Every study tool.<br />Powered by AI.
-          </h2>
-        </div>
+        {/* How it works */}
+        <section id="how" className="py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20">
+          <div className="text-center mb-12">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">How it works</span>
+            <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">Three steps, every day</h2>
+          </div>
+          <ol className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-7 hover:border-primary-container/20 transition-all">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-11 h-11 bg-surface-container-highest rounded-xl flex items-center justify-center">
+                    <span className="material-symbols-outlined text-primary-container">{s.icon}</span>
+                  </span>
+                  <span className="text-xs font-bold text-primary-container">Step {i + 1}</span>
+                </div>
+                <h3 className="font-headline text-lg font-bold text-on-surface mb-2">{s.title}</h3>
+                <p className="text-on-surface-variant text-sm leading-relaxed">{s.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((f, i) => (
-            <div key={i}
-              className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-7 hover:border-primary-container/20 hover:translate-y-[-2px] transition-all group">
-              <div className={`w-12 h-12 ${f.bg} rounded-xl flex items-center justify-center mb-5`}>
-                <span className={`material-symbols-outlined ${f.color} text-2xl`}
-                  style={{ fontVariationSettings: "'FILL' 1" }}>{f.icon}</span>
-              </div>
-              <h3 className="font-headline text-lg font-bold text-on-surface mb-2">{f.title}</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── DEMO SECTION ── */}
-      <section className="py-20 px-6 max-w-6xl mx-auto">
-        <div className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-8 md:p-12 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary-container/5 blur-[100px] rounded-full" />
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Live example</span>
-              <h2 className="font-headline text-3xl font-extrabold tracking-tighter text-on-surface mt-3 mb-4">
-                Try it on<br />"Photosynthesis"
+        {/* Mentor */}
+        <section id="mentor" className="py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20">
+          <div className="bg-surface-container-low border border-outline-variant/10 rounded-3xl p-6 sm:p-10 md:p-12 grid lg:grid-cols-2 gap-10 items-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-primary-container/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className="relative">
+              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">AI Mentor</span>
+              <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3 mb-4">
+                Like a senior who has been there
               </h2>
-              <p className="text-on-surface-variant text-sm leading-relaxed mb-6">
-                We typed "Photosynthesis" into Kelvra. It generated 8 flashcards, 6 quiz questions, a 3-paragraph summary, and a 5-day study plan. Here's what it made:
+              <p className="text-on-surface-variant leading-relaxed mb-6">
+                Most study apps stop at flashcards. Kelvra's mentor looks at how you are really doing and connects what you study to the real world.
               </p>
-              <button onClick={() => navigate("/auth")}
-                className="bg-primary-container text-on-primary-container font-bold px-6 py-3 rounded-xl hover:scale-[1.02] transition-all text-sm">
-                Generate your own →
+              <ul className="space-y-3 mb-8">
+                {MENTOR_POINTS.map((p) => (
+                  <li key={p.text} className="flex items-start gap-3 text-sm text-on-surface">
+                    <span className="material-symbols-outlined text-primary-container text-lg" style={filled}>{p.icon}</span>
+                    {p.text}
+                  </li>
+                ))}
+              </ul>
+              <button onClick={start} className="bg-primary-container text-on-primary-container font-bold px-6 py-3 rounded-xl hover:scale-[1.02] transition-all text-sm">
+                Meet your mentor →
               </button>
             </div>
-            {/* Sample output preview */}
-            <div className="space-y-3">
-              <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-primary-container/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-primary-container text-sm">style</span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary-container">Flashcard 1 of 8</span>
-                </div>
-                <p className="text-sm font-medium text-on-surface">What is the primary site of photosynthesis in a plant cell?</p>
-                <div className="mt-2 pt-2 border-t border-outline-variant/10">
-                  <p className="text-xs text-on-surface-variant">The chloroplast — specifically the thylakoid membranes for light reactions and the stroma for the Calvin cycle.</p>
-                </div>
+            <div className="relative space-y-3 text-sm" aria-label="Example conversation">
+              <div className="flex justify-end">
+                <p className="max-w-[85%] bg-primary-container text-on-primary-container px-4 py-3 rounded-2xl rounded-tr-sm">
+                  Why do I even need to learn derivatives?
+                </p>
               </div>
-              <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-secondary text-sm">quiz</span>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-secondary">Quiz Question</span>
-                </div>
-                <p className="text-sm font-medium text-on-surface">Which molecule is the direct energy source for the Calvin cycle?</p>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {["A) Glucose", "B) ATP + NADPH", "C) CO₂", "D) H₂O"].map((o, i) => (
-                    <div key={i} className={`text-xs px-3 py-2 rounded-lg ${i === 1 ? "bg-primary-container/20 text-primary-container border border-primary-container/30" : "bg-surface-container-low text-on-surface-variant"}`}>
-                      {o}
-                    </div>
-                  ))}
+              <div className="flex gap-2">
+                <span className="w-8 h-8 rounded-full bg-primary-container/15 flex items-center justify-center flex-shrink-0">
+                  <span className="material-symbols-outlined text-primary-container text-sm" style={filled}>diversity_3</span>
+                </span>
+                <div className="max-w-[85%] bg-surface-container border border-outline-variant/10 px-4 py-3 rounded-2xl rounded-tl-sm text-on-surface-variant space-y-2">
+                  <p>Fair question. A derivative measures <strong className="text-on-surface">how fast something changes</strong>:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Car speed is the derivative of distance.</li>
+                    <li>Engineers use it to find the strongest, lightest beam.</li>
+                    <li>Data scientists use it to train every AI model.</li>
+                  </ul>
+                  <p>Your last quiz on it was 58%, and your exam is in 12 days. Want a 20-minute practice plan for today?</p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── FAQ ── */}
-      <section className="py-20 px-6 max-w-3xl mx-auto">
-        <div className="text-center mb-14">
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">FAQ</span>
-          <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">
-            Common questions
-          </h2>
-        </div>
-        <div className="space-y-4">
-          {FAQS.map((faq, i) => (
-            <div key={i} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 hover:border-primary-container/20 transition-all">
-              <h3 className="font-headline font-bold text-on-surface mb-2">{faq.q}</h3>
-              <p className="text-on-surface-variant text-sm leading-relaxed">{faq.a}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section className="py-24 px-6 max-w-4xl mx-auto text-center">
-        <div className="bg-surface-container-low border border-primary-container/10 rounded-3xl p-12 md:p-16 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary-container/5 to-transparent pointer-events-none" />
-          <div className="relative z-10">
-            <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">
-              Ready to study smarter?
-            </h2>
-            <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto">
-              Turn your notes into flashcards, a quiz and a study plan.
-            </p>
-            <button
-              onClick={() => navigate("/auth")}
-              className="group inline-flex items-center gap-3 bg-primary-container text-on-primary-container font-headline font-bold px-10 py-5 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_50px_rgba(110,231,183,0.2)]">
-              Start for free — no credit card
-              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
-            </button>
-            <p className="text-on-surface-variant/50 text-xs mt-4 uppercase tracking-widest">Free forever · No credit card · Setup in 30 seconds</p>
+        {/* Features */}
+        <section id="features" className="py-16 sm:py-20 px-4 sm:px-6 max-w-6xl mx-auto scroll-mt-20">
+          <div className="text-center mb-12">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">Everything in one place</span>
+            <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">Built for real exam prep</h2>
           </div>
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {FEATURES.map((f) => (
+              <div key={f.title} className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 hover:border-primary-container/20 hover:-translate-y-0.5 transition-all">
+                <span className="w-11 h-11 bg-primary-container/10 rounded-xl flex items-center justify-center mb-4">
+                  <span className="material-symbols-outlined text-primary-container" style={filled}>{f.icon}</span>
+                </span>
+                <h3 className="font-headline font-bold text-on-surface mb-1.5">{f.title}</h3>
+                <p className="text-on-surface-variant text-sm leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {/* ── FOOTER ── */}
-      <footer className="border-t border-outline-variant/10 py-10 px-6">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        {/* FAQ */}
+        <section id="faq" className="py-16 sm:py-20 px-4 sm:px-6 max-w-3xl mx-auto scroll-mt-20">
+          <div className="text-center mb-10">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary-container">FAQ</span>
+            <h2 className="font-headline text-3xl sm:text-4xl font-extrabold tracking-tighter text-on-surface mt-3">Common questions</h2>
+          </div>
+          <div className="space-y-3">
+            {FAQS.map((f) => (
+              <details key={f.q} className="group bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5 open:border-primary-container/20">
+                <summary className="font-headline font-bold text-on-surface cursor-pointer list-none flex items-center justify-between gap-4">
+                  {f.q}
+                  <span className="material-symbols-outlined text-on-surface-variant group-open:rotate-180 transition-transform">expand_more</span>
+                </summary>
+                <p className="text-on-surface-variant text-sm leading-relaxed mt-3">{f.a}</p>
+              </details>
+            ))}
+          </div>
+        </section>
+
+        {/* Final CTA */}
+        <section className="py-16 sm:py-24 px-4 sm:px-6 max-w-4xl mx-auto text-center">
+          <div className="bg-surface-container-low border border-primary-container/10 rounded-3xl p-8 sm:p-12 md:p-16 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-container/5 to-transparent pointer-events-none" />
+            <div className="relative">
+              <h2 className="font-headline text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface mb-4">Your next exam starts today</h2>
+              <p className="text-on-surface-variant text-lg mb-8 max-w-xl mx-auto">Turn tonight's notes into a study kit, and let your mentor plan the rest.</p>
+              <button onClick={start}
+                className="group inline-flex items-center gap-2 bg-primary-container text-on-primary-container font-headline font-bold px-8 sm:px-10 py-4 sm:py-5 rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_50px_rgba(110,231,183,0.2)]">
+                Create my free account
+                <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-outline-variant/10 py-8 px-4 sm:px-6">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 bg-primary-container rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-on-primary-container text-xs"
-                style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+              <span className="material-symbols-outlined text-on-primary-container text-xs" style={filled}>auto_awesome</span>
             </div>
             <span className="font-headline font-bold text-on-surface tracking-tighter">Kelvra</span>
           </div>
-          <p className="text-xs text-on-surface-variant">© 2025 Kelvra. Built with ❤️ for students everywhere.</p>
-          <div className="flex gap-6 text-xs text-on-surface-variant">
-            <a href="#" className="hover:text-primary-container transition-colors">Privacy</a>
-            <a href="#" className="hover:text-primary-container transition-colors">Terms</a>
-            <a href="#" className="hover:text-primary-container transition-colors">Contact</a>
-          </div>
+          <p className="text-xs text-on-surface-variant">© {new Date().getFullYear()} Kelvra · Made for students everywhere</p>
         </div>
       </footer>
 
-      <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
+      <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}html{scroll-behavior:smooth}`}</style>
     </div>
   );
 }

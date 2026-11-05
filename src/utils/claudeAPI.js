@@ -1,18 +1,27 @@
 // src/utils/claudeAPI.js
 // ── AI calls go to Groq through our own /api/groq (api/groq.js), which keeps the key on the server ──
-import { supabase } from "./supabase";
+import { getIdToken } from "./firebase";
 
 // The server picks the model and checks that the user is signed in.
 export async function groqFetch(body) {
-  const { data: { session } } = await supabase.auth.getSession();
+  if (!navigator.onLine) throw new Error("You are offline. AI features need an internet connection.");
+  const token = await getIdToken();
   return fetch("/api/groq", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${session?.access_token ?? ""}`,
+      "Authorization": `Bearer ${token}`,
     },
     body: JSON.stringify(body),
   });
+}
+
+// Turn an /api/groq error into a sentence a student understands.
+export function aiErrorMessage(status, data) {
+  if (status === 401) return "Your login expired. Please sign in again.";
+  if (status === 429) return "The AI is busy right now (rate limit). Wait a minute and try again.";
+  if (status >= 500 && !data?.error?.message) return "The AI server had a problem. Try again in a moment.";
+  return data?.error?.message || `AI request failed (${status}).`;
 }
 
 async function callGroq(prompt) {
@@ -24,18 +33,15 @@ async function callGroq(prompt) {
       max_tokens: 2048,
     });
   } catch (networkErr) {
-    throw new Error("Network error: " + networkErr.message);
+    throw new Error(navigator.onLine ? "Could not reach the AI server. Try again in a moment." : networkErr.message);
   }
 
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
 
-  if (!response.ok) {
-    const msg = data?.error?.message || JSON.stringify(data);
-    throw new Error(`Groq API Error ${response.status}: ${msg}`);
-  }
+  if (!response.ok) throw new Error(aiErrorMessage(response.status, data));
 
   const text = data?.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Empty response from Groq: " + JSON.stringify(data));
+  if (!text) throw new Error("The AI sent back an empty answer. Please try again.");
 
   return text;
 }
@@ -224,8 +230,8 @@ export async function extractTextFromImage(base64Image, mimeType) {
     }],
     max_tokens: 2048,
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || "Vision API error");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(aiErrorMessage(response.status, data));
   return data?.choices?.[0]?.message?.content || "";
 }
 
@@ -334,8 +340,8 @@ Begin transcription:`,
       temperature: 0.1,
   });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || "Handwriting recognition failed");
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(aiErrorMessage(response.status, data));
   const text = data?.choices?.[0]?.message?.content;
   if (!text || text.length < 5) throw new Error("Could not read the handwriting. Please try a clearer photo.");
   return text;

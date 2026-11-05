@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveOnboardingPrefs } from "../utils/supabase";
+import { saveOnboardingPrefs } from "../utils/firebase";
 
 const STEPS = [
   {
@@ -191,7 +191,7 @@ export default function OnboardingPage() {
       {/* Footer */}
       <footer className="fixed bottom-8 w-full flex justify-center pointer-events-none">
         <div className="flex items-center gap-6 text-[10px] uppercase tracking-[0.3em] font-label text-on-surface-variant/40">
-          <span>© 2025 Kelvra</span>
+          <span>© {new Date().getFullYear()} Kelvra</span>
           <span className="w-1 h-1 bg-outline-variant/20 rounded-full" />
           <span>Intelligence v1.0</span>
         </div>

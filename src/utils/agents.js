@@ -2,7 +2,7 @@
 // ── Kelvra AI Agents ──
 // 4 intelligent agents that power personalized learning
 
-import { supabase } from "./supabase";
+import { listRecent, setMeta } from "./firebase";
 import { groqFetch } from "./claudeAPI";
 
 async function callGroq(prompt, maxTokens = 1000) {
@@ -11,7 +11,8 @@ async function callGroq(prompt, maxTokens = 1000) {
     temperature: 0.3,
     max_tokens: maxTokens,
   });
-  const data = await response.json();
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error?.message || `AI request failed (${response.status}).`);
   return data?.choices?.[0]?.message?.content || "";
 }
 
@@ -26,13 +27,8 @@ export async function runPlannerAgent(userId, examName, examDate, topics) {
     const exam = new Date(examDate);
     const daysLeft = Math.max(1, Math.ceil((exam - today) / (1000 * 60 * 60 * 24)));
 
-    // Get user's weak spots from Supabase
-    const { data: scores } = await supabase
-      .from("quiz_scores")
-      .select("topic, pct")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
+    // Get the student's weak spots
+    const scores = await listRecent(userId, "quiz_scores", { max: 20 });
 
     const weakTopics = scores
       ? scores
@@ -82,13 +78,11 @@ Respond ONLY with valid JSON in this exact format, no other text:
     if (!jsonMatch) throw new Error("Could not parse planner response");
     const plan = JSON.parse(jsonMatch[0]);
 
-    // Save to Supabase
-    await supabase.from("agent_plans").upsert({
-      user_id: userId,
+    // Save the plan (best effort, works offline)
+    setMeta(userId, "agent_plan", {
       exam_name: examName,
       exam_date: examDate,
       plan: JSON.stringify(plan),
-      updated_at: new Date().toISOString(),
     });
 
     return { success: true, plan };
@@ -106,20 +100,10 @@ Respond ONLY with valid JSON in this exact format, no other text:
 export async function runObserverAgent(userId) {
   try {
     // Get all quiz scores
-    const { data: scores } = await supabase
-      .from("quiz_scores")
-      .select("topic, score, total, pct, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const scores = await listRecent(userId, "quiz_scores", { max: 50 });
 
     // Get all study sessions
-    const { data: sessions } = await supabase
-      .from("study_sessions")
-      .select("topic, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const sessions = await listRecent(userId, "study_sessions", { max: 50 });
 
     if (!scores || scores.length === 0) {
       return {
@@ -208,19 +192,9 @@ Write ONE short, specific, encouraging recommendation (max 20 words) for what th
 
 export async function runCoachAgent(userId) {
   try {
-    const { data: scores } = await supabase
-      .from("quiz_scores")
-      .select("topic, pct, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(50);
+    const scores = await listRecent(userId, "quiz_scores", { max: 50 });
 
-    const { data: sessions } = await supabase
-      .from("study_sessions")
-      .select("topic, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const sessions = await listRecent(userId, "study_sessions", { max: 20 });
 
     if (!sessions || sessions.length === 0) {
       return {
@@ -315,12 +289,7 @@ Write a short, warm coaching message (max 25 words) about what to focus on today
 
 export async function runPredictorAgent(userId, examName = "your exam") {
   try {
-    const { data: scores } = await supabase
-      .from("quiz_scores")
-      .select("topic, pct, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(30);
+    const scores = await listRecent(userId, "quiz_scores", { max: 30 });
 
     if (!scores || scores.length < 3) {
       return {

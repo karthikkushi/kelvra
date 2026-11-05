@@ -1,5 +1,15 @@
 // src/utils/gamification.js
-import { supabase } from "./supabase";
+import { doc, setDoc, collection, query, orderBy, limit } from "firebase/firestore";
+import { db, saveLater, readDoc, readQuery } from "./firebase";
+
+const xpDoc = (userId) => doc(db, "leaderboard", userId);
+
+// Sunday of this week as YYYY-MM-DD (weekly XP resets when this changes)
+function currentWeekStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return d.toISOString().split("T")[0];
+}
 
 // XP values for each action
 export const XP_REWARDS = {
@@ -36,23 +46,31 @@ export function xpToNextLevel(totalXp) {
   return currentLevel * 100 - totalXp;
 }
 
-// Award XP to user — pass user object so we can store display_name without joining auth.users
-export async function awardXP(userId, action, _metadata = {}, userObj = null) {
+// Award XP to user — pass user object so we can store display_name on the leaderboard.
+// Calls run one after another, so two awards at the same moment cannot overwrite each other.
+let xpQueue = Promise.resolve();
+export function awardXP(userId, action, metadata = {}, userObj = null) {
+  const run = xpQueue.then(() => awardXPNow(userId, action, metadata, userObj));
+  xpQueue = run.catch(() => null);
+  return run;
+}
+
+async function awardXPNow(userId, action, _metadata = {}, userObj = null) {
   try {
     const xpGain = XP_REWARDS[action] || 0;
     if (!xpGain) return null;
 
     // Get current XP record
-    const { data: current } = await supabase
-      .from("user_xp")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
+    if (!db || !userId) return null;
+    let current = null;
+    try {
+      const snap = await readDoc(xpDoc(userId), 5000);
+      current = snap.exists() ? snap.data() : null;
+    } catch {
+      return null; // could not read the current XP (offline, not cached): skip rather than overwrite it
+    }
 
-    const today = new Date();
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay()); // Sunday
-    const weekStartStr = weekStart.toISOString().split("T")[0];
+    const weekStartStr = currentWeekStart();
 
     if (current) {
       // Reset weekly XP if new week
@@ -63,21 +81,21 @@ export async function awardXP(userId, action, _metadata = {}, userObj = null) {
 
       // Check for new badges
       const newBadges = [...(current.badges || [])];
-      if (action === "FIRST_SESSION" && !newBadges.includes("first_step")) newBadges.push("first_step");
+      if ((action === "FIRST_SESSION" || action === "GENERATE_KIT") && !newBadges.includes("first_step")) newBadges.push("first_step");
       if (action === "PERFECT_QUIZ" && !newBadges.includes("quiz_master")) newBadges.push("quiz_master");
       if (action === "SHARE_KIT" && !newBadges.includes("social_star")) newBadges.push("social_star");
       if (newLevel >= 5 && !newBadges.includes("level_5")) newBadges.push("level_5");
       if (newLevel >= 10 && !newBadges.includes("level_10")) newBadges.push("level_10");
       if (newTotalXP >= 1000 && !newBadges.includes("centurion")) newBadges.push("centurion");
 
-      await supabase.from("user_xp").update({
+      saveLater(setDoc(xpDoc(userId), {
         total_xp: newTotalXP,
         weekly_xp: newWeeklyXP,
         week_start: weekStartStr,
         level: newLevel,
         badges: newBadges,
         updated_at: new Date().toISOString(),
-      }).eq("user_id", userId);
+      }, { merge: true }), "Save XP");
 
       return {
         xpGained: xpGain,
@@ -89,11 +107,11 @@ export async function awardXP(userId, action, _metadata = {}, userObj = null) {
       };
     } else {
       // First time — create record
-      const newBadges = action === "FIRST_SESSION" ? ["first_step"] : [];
+      const newBadges = action === "FIRST_SESSION" || action === "GENERATE_KIT" ? ["first_step"] : [];
       const displayName = userObj?.user_metadata?.full_name
         || userObj?.email?.split("@")[0]
         || null;
-      await supabase.from("user_xp").insert({
+      saveLater(setDoc(xpDoc(userId), {
         user_id: userId,
         display_name: displayName,
         total_xp: xpGain,
@@ -101,7 +119,8 @@ export async function awardXP(userId, action, _metadata = {}, userObj = null) {
         week_start: weekStartStr,
         level: 1,
         badges: newBadges,
-      });
+        updated_at: new Date().toISOString(),
+      }), "Save XP");
       return { xpGained: xpGain, totalXP: xpGain, weeklyXP: xpGain, level: 1, newBadges, leveledUp: false };
     }
   } catch (err) {
@@ -113,26 +132,26 @@ export async function awardXP(userId, action, _metadata = {}, userObj = null) {
 // Get user's XP data
 export async function getUserXP(userId) {
   try {
-    const { data } = await supabase
-      .from("user_xp")
-      .select("*")
-      .eq("user_id", userId)
-      .single();
-    return data || { total_xp: 0, weekly_xp: 0, level: 1, badges: [] };
+    const snap = await readDoc(xpDoc(userId), 5000);
+    const data = snap.exists() ? snap.data() : null;
+    if (!data) return { total_xp: 0, weekly_xp: 0, level: 1, badges: [] };
+    return { ...data, weekly_xp: data.week_start === currentWeekStart() ? data.weekly_xp : 0 };
   } catch {
     return { total_xp: 0, weekly_xp: 0, level: 1, badges: [] };
   }
 }
 
-// Get leaderboard — reads only from user_xp, no auth.users join
+// Get this week's leaderboard. Old weeks' XP counts as 0, so a quiet student
+// does not stay on top from a previous week.
 export async function getLeaderboard() {
   try {
-    const { data } = await supabase
-      .from("user_xp")
-      .select("user_id, display_name, total_xp, weekly_xp, level, badges, week_start")
-      .order("weekly_xp", { ascending: false })
-      .limit(20);
-    return data || [];
+    const snap = await readQuery(query(collection(db, "leaderboard"), orderBy("weekly_xp", "desc"), limit(50)));
+    const week = currentWeekStart();
+    return snap.docs
+      .map((d) => ({ user_id: d.id, ...d.data() }))
+      .map((e) => ({ ...e, weekly_xp: e.week_start === week ? e.weekly_xp : 0 }))
+      .sort((a, b) => b.weekly_xp - a.weekly_xp || b.total_xp - a.total_xp)
+      .slice(0, 20);
   } catch {
     return [];
   }

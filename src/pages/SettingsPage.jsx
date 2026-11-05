@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "./DashboardPage";
-import { signOut, supabase } from "../utils/supabase";
+import Sidebar from "../components/Sidebar";
+import { signOut, updateUserProfile } from "../utils/firebase";
 
 export default function SettingsPage({ user }) {
   const navigate = useNavigate();
@@ -22,7 +22,7 @@ export default function SettingsPage({ user }) {
     if (!displayName.trim()) return;
     setSaving(true);
     try {
-      await supabase.auth.updateUser({ data: { full_name: displayName.trim() } });
+      await updateUserProfile({ full_name: displayName.trim() });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch { /* best-effort */ }
@@ -156,23 +156,6 @@ export default function SettingsPage({ user }) {
         </div>
       </main>
 
-      {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {[
-          { icon: "dashboard", path: "/dashboard" },
-          { icon: "menu_book", path: "/study" },
-          { icon: "style",     path: "/flashcards" },
-          { icon: "insights",  path: "/progress" },
-          { icon: "settings",  path: "/settings", active: true },
-        ].map((item) => (
-          <div key={item.icon} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
-            <span className="material-symbols-outlined"
-              style={item.active ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
-          </div>
-        ))}
-      </nav>
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>

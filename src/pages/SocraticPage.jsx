@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "./DashboardPage";
+import Sidebar from "../components/Sidebar";
 import {
   startSocraticSession,
   continueSocraticDialogue,
   getSocraticReveal,
 } from "../utils/claudeAPI";
+import { awardXP } from "../utils/gamification";
 
 const SUGGESTED_TOPICS = [
   "Photosynthesis",
@@ -51,8 +52,8 @@ export default function SocraticPage({ user }) {
     try {
       const question = await startSocraticSession(topicToUse);
       setMessages([{ role: "ai", content: question, timestamp: new Date() }]);
-    } catch {
-      setMessages([{ role: "ai", content: "Let's explore this topic together. What do you already know about it?", timestamp: new Date() }]);
+    } catch (err) {
+      setMessages([{ role: "error", content: err.message || "Could not reach the AI. Please try again.", timestamp: new Date() }]);
     } finally {
       setLoading(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -63,15 +64,18 @@ export default function SocraticPage({ user }) {
     if (!userInput.trim() || loading) return;
     const userMsg = userInput.trim();
     setUserInput("");
-    const newMessages = [...messages, { role: "user", content: userMsg, timestamp: new Date() }];
+    const newMessages = [...messages.filter((m) => m.role !== "error"), { role: "user", content: userMsg, timestamp: new Date() }];
     setMessages(newMessages);
     setLoading(true);
     setTurnCount((prev) => prev + 1);
     try {
       const response = await continueSocraticDialogue(topic, newMessages, userMsg);
       setMessages([...newMessages, { role: "ai", content: response, timestamp: new Date() }]);
-    } catch {
-      setMessages([...newMessages, { role: "ai", content: "That's a great thought! Can you tell me more about why you think that?", timestamp: new Date() }]);
+    } catch (err) {
+      // Show the real problem instead of pretending the AI answered; the student can resend.
+      setMessages([...newMessages, { role: "error", content: err.message || "Could not reach the AI. Please try again.", timestamp: new Date() }]);
+      setUserInput(userMsg);
+      setTurnCount((prev) => prev - 1);
     } finally {
       setLoading(false);
     }
@@ -81,10 +85,12 @@ export default function SocraticPage({ user }) {
     setRevealLoading(true);
     setShowReveal(true);
     try {
-      const explanation = await getSocraticReveal(topic, messages);
+      const explanation = await getSocraticReveal(topic, messages.filter((m) => m.role !== "error"));
       setReveal(explanation);
-    } catch {
-      setReveal("Great exploration! The key to " + topic + " lies in understanding the core concepts you've been discovering through our conversation.");
+      if (user?.id) awardXP(user.id, "SOCRATIC_SESSION", {}, user);
+    } catch (err) {
+      setShowReveal(false);
+      setMessages((m) => [...m, { role: "error", content: `Could not load the explanation: ${err.message || "please try again."}`, timestamp: new Date() }]);
     } finally {
       setRevealLoading(false);
     }
@@ -99,7 +105,7 @@ export default function SocraticPage({ user }) {
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body">
-      <Sidebar active="socratic" />
+      <Sidebar active="socratic" mobileNav={!sessionActive} />
       <main className="md:ml-64 min-h-screen flex flex-col">
 
         {!sessionActive ? (
@@ -210,7 +216,12 @@ export default function SocraticPage({ user }) {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4 max-w-3xl mx-auto w-full pb-36 md:pb-6">
-              {messages.map((msg, i) => (
+              {messages.map((msg, i) => msg.role === "error" ? (
+                <div key={i} role="alert" className="mx-auto max-w-md bg-error-container/10 border border-error/20 rounded-xl px-4 py-3 text-error text-xs flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm">error</span>
+                  {msg.content}
+                </div>
+              ) : (
                 <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} gap-3`}>
                   {msg.role === "ai" && (
                     <div className="w-9 h-9 rounded-full bg-secondary-container/20 flex items-center justify-center flex-shrink-0 mt-1">

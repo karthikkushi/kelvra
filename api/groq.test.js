@@ -3,13 +3,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { proxyGroq } from "./groq.js";
 
-const env = { GROQ_API_KEY: "server-key", VITE_SUPABASE_URL: "https://x.supabase.co", VITE_SUPABASE_ANON_KEY: "anon" };
+const env = { GROQ_API_KEY: "server-key", VITE_FIREBASE_API_KEY: "fb-key" };
 
 function fakeFetch({ loggedIn = true } = {}) {
   const calls = [];
   const fetch = async (url, opts) => {
     calls.push({ url, opts });
-    if (url.endsWith("/auth/v1/user")) return { ok: loggedIn, status: loggedIn ? 200 : 401 };
+    if (url.includes("accounts:lookup")) {
+      return { ok: loggedIn, status: loggedIn ? 200 : 400, json: async () => (loggedIn ? { users: [{ localId: "u1" }] } : { error: {} }) };
+    }
     return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "hi" } }] }) };
   };
   return { fetch, calls };
@@ -22,6 +24,14 @@ test("refuses callers who are not logged in, without calling Groq", async () => 
     assert.equal(r.status, 401);
     assert.ok(!calls.some((c) => c.url.includes("groq.com")));
   }
+});
+
+test("checks the token with Firebase using the project's API key", async () => {
+  const { fetch, calls } = fakeFetch();
+  await proxyGroq({ body: { messages: [{ role: "user", content: "x" }] }, token: "id-token", env, fetch });
+  const lookup = calls.find((c) => c.url.includes("accounts:lookup"));
+  assert.ok(lookup.url.endsWith("?key=fb-key"));
+  assert.deepEqual(JSON.parse(lookup.opts.body), { idToken: "id-token" });
 });
 
 test("text goes to the text model with the server key; extra fields are dropped", async () => {
@@ -55,4 +65,13 @@ test("bad requests and a missing server key fail clearly", async () => {
   const noKey = { ...env, GROQ_API_KEY: "" };
   const r = await proxyGroq({ body: { messages: [{ role: "user", content: "x" }] }, token: "t", env: noKey, fetch });
   assert.equal(r.status, 500);
+});
+
+test("Groq being unreachable returns 502 instead of crashing", async () => {
+  const fetch = async (url) => {
+    if (url.includes("accounts:lookup")) return { ok: true, status: 200, json: async () => ({ users: [{}] }) };
+    throw new TypeError("fetch failed");
+  };
+  const r = await proxyGroq({ body: { messages: [{ role: "user", content: "x" }] }, token: "t", env, fetch });
+  assert.equal(r.status, 502);
 });

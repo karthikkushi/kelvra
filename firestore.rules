@@ -1,0 +1,50 @@
+rules_version = '2';
+
+// Kelvra security rules. Deploy with: npx firebase-tools deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Each student's profile, study sessions, quiz scores, exam goal, plans and mentor chat:
+    // only that student can read or change them.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Leaderboard: every signed-in student can read it; you can only write your own row,
+    // XP can only go up, and by at most 50 per save (the biggest single reward is 50).
+    match /leaderboard/{uid} {
+      allow read: if signedIn();
+      allow create: if isOwner(uid)
+        && request.resource.data.total_xp is int
+        && request.resource.data.total_xp >= 0 && request.resource.data.total_xp <= 50
+        && request.resource.data.weekly_xp is int && request.resource.data.weekly_xp <= 50;
+      allow update: if isOwner(uid)
+        && request.resource.data.total_xp is int
+        && request.resource.data.total_xp >= resource.data.total_xp
+        && request.resource.data.total_xp - resource.data.total_xp <= 50
+        && request.resource.data.weekly_xp is int
+        && request.resource.data.weekly_xp <= request.resource.data.total_xp;
+      allow delete: if isOwner(uid);
+    }
+
+    // Shared study kits: anyone with the link can open one (no listing of all kits).
+    // Only the signed-in owner can create or delete it; anyone can add exactly one view.
+    match /shared_kits/{shareId} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if signedIn()
+        && shareId.size() >= 12
+        && request.resource.data.user_id == request.auth.uid
+        && request.resource.data.views == 0;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
+        && request.resource.data.views == resource.data.views + 1;
+      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+    }
+  }
+}

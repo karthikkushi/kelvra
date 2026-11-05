@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "./DashboardPage";
-import { saveQuizScore } from "../utils/supabase";
+import Sidebar from "../components/Sidebar";
+import { saveQuizScore } from "../utils/firebase";
 import { awardXP } from "../utils/gamification";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
@@ -155,7 +155,7 @@ export default function QuizPage({ user }) {
       setQIndex(qIndex + 1);
     } else {
       setDone(true);
-      // Save quiz score to Supabase (non-blocking)
+      // Save quiz score (non-blocking, works offline)
       if (user?.id) {
         try {
           const finalScore = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
@@ -383,24 +383,6 @@ export default function QuizPage({ user }) {
         )}
       </main>
 
-      {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {[
-          { icon:"dashboard", label:"Home",  path:"/dashboard" },
-          { icon:"menu_book", label:"Study", path:"/study" },
-          { icon:"style",     label:"Cards", path:"/flashcards" },
-          { icon:"quiz",      label:"Quiz",  path:"/quiz", active:true },
-          { icon:"insights",  label:"Stats", path:"/progress" },
-        ].map((item) => (
-          <div key={item.icon} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
-            <span className="material-symbols-outlined"
-              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
-          </div>
-        ))}
-      </nav>
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>

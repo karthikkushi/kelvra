@@ -24,6 +24,17 @@ const groqDevApi = (env) => ({
 });
 
 export default defineConfig(({ mode }) => ({
+  build: {
+    rollupOptions: {
+      output: {
+        // Big libraries get their own files, so an app update does not make users download them again.
+        manualChunks(id) {
+          if (id.includes("node_modules/firebase") || id.includes("node_modules/@firebase")) return "firebase";
+          if (id.includes("node_modules/react") || id.includes("node_modules/scheduler")) return "react";
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     groqDevApi(loadEnv(mode, process.cwd(), "")),
@@ -45,7 +56,10 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         // Cache app shell
-        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff2}"],
+        globPatterns: ["**/*.{js,mjs,css,html,svg,png,ico,woff2}"],
+        // The PDF reader worker is ~1 MB; cache it too so PDF upload works offline
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/api\//],
         // Cache strategies
         runtimeCaching: [
           {
@@ -67,8 +81,8 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            // Network first for Supabase
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Firebase login and database: never cache (Firestore keeps its own offline copy)
+            urlPattern: /^https:\/\/(firestore|identitytoolkit|securetoken)\.googleapis\.com\/.*/i,
             handler: "NetworkOnly",
           },
         ],

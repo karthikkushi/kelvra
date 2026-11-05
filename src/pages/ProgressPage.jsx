@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sidebar } from "./DashboardPage";
-import { getStudySessions, getQuizScores } from "../utils/supabase";
+import Sidebar from "../components/Sidebar";
+import { getStudySessions, getQuizScores } from "../utils/firebase";
 
 function calcWeekly(sessions) {
   const days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
@@ -322,39 +322,8 @@ export default function ProgressPage({ user }) {
           </div>
         )}
 
-        {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-outline-variant/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant">
-            © 2025 Kelvra. Intelligence that grows with you.
-          </p>
-          <div className="flex gap-8">
-            {["Privacy Policy", "Terms of Service", "Contact Support"].map((l) => (
-              <a key={l} href="#"
-                className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant hover:text-primary-container transition-colors">
-                {l}
-              </a>
-            ))}
-          </div>
-        </footer>
       </main>
 
-      {/* Mobile nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {[
-          { icon: "dashboard", label: "Home",  path: "/dashboard" },
-          { icon: "menu_book", label: "Study", path: "/study" },
-          { icon: "style",     label: "Cards", path: "/flashcards" },
-          { icon: "insights",  label: "Stats", path: "/progress", active: true },
-        ].map((item) => (
-          <div key={item.icon} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer min-h-[44px] justify-center ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
-            <span className="material-symbols-outlined"
-              style={item.active ? { fontVariationSettings: "'FILL' 1" } : {}}>{item.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
-          </div>
-        ))}
-      </nav>
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>

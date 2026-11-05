@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getStudySessions, getQuizScores, signOut, supabase } from "../utils/supabase";
+import { getStudySessions, getQuizScores } from "../utils/firebase";
+import Sidebar from "../components/Sidebar";
 import { getUserXP } from "../utils/gamification";
 import ExamCountdown from "../components/ExamCountdown";
 import ThemeToggle from "../components/ThemeToggle";
@@ -66,94 +67,6 @@ function getLongestNotStudied(sessions) {
 
 function Skeleton({ className }) {
   return <div className={`bg-surface-container-highest/60 animate-pulse rounded-lg ${className}`} />;
-}
-
-function Sidebar({ active = "dashboard" }) {
-  const navigate = useNavigate();
-  const [sidebarUser, setSidebarUser] = useState(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSidebarUser(session?.user ?? null);
-    });
-  }, []);
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/");
-  };
-
-  const links = [
-    { id: "dashboard",  icon: "dashboard",  label: "Dashboard",  path: "/dashboard" },
-    { id: "study",      icon: "menu_book",  label: "Study",      path: "/study" },
-    { id: "flashcards", icon: "style",      label: "Flashcards", path: "/flashcards" },
-    { id: "quiz",       icon: "quiz",       label: "Quiz",       path: "/quiz" },
-    { id: "agents",      icon: "smart_toy",   label: "AI Agents",   path: "/agents" },
-    { id: "socratic",    icon: "psychology",  label: "AI Tutor",    path: "/socratic" },
-    { id: "leaderboard", icon: "leaderboard", label: "Leaderboard", path: "/leaderboard" },
-    { id: "insights",    icon: "insights",    label: "Insights",    path: "/progress" },
-  ];
-
-  const initials = sidebarUser?.user_metadata?.full_name
-    ? sidebarUser.user_metadata.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-    : sidebarUser?.email?.[0]?.toUpperCase() ?? "K";
-
-  return (
-    <aside className="h-screen w-64 fixed left-0 top-0 z-40 bg-surface-container-low flex-col py-6 gap-2 hidden md:flex">
-      <div className="px-6 mb-8">
-        <h1 className="font-headline text-lg font-extrabold text-on-surface tracking-tighter">Kelvra</h1>
-        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant mt-1 font-label">Intelligent Atelier</p>
-      </div>
-      <nav className="flex-1 space-y-1">
-        {links.map((l) => (
-          <div key={l.id}
-            onClick={() => navigate(l.path)}
-            className={`flex items-center px-4 py-3 mx-2 rounded-lg cursor-pointer transition-all duration-200 gap-3 font-label text-sm font-medium ${
-              active === l.id
-                ? "bg-surface-container-highest text-primary-container"
-                : "text-on-surface-variant hover:bg-surface-container-highest/50 hover:translate-x-1"
-            }`}>
-            <span className="material-symbols-outlined"
-              style={active === l.id ? { fontVariationSettings:"'FILL' 1" } : {}}>
-              {l.icon}
-            </span>
-            {l.label}
-          </div>
-        ))}
-      </nav>
-      <div className="px-4 mt-auto space-y-1">
-        {/* User profile row */}
-        <div onClick={() => navigate("/settings")}
-          className="mx-2 mb-3 flex items-center gap-3 px-3 py-3 rounded-xl bg-surface-container-highest/40 border border-outline-variant/10 cursor-pointer hover:bg-surface-container-highest transition-all">
-          <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-on-primary-container">{initials}</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-on-surface truncate">
-              {sidebarUser?.user_metadata?.full_name || sidebarUser?.email || "My Account"}
-            </p>
-            <p className="text-[10px] text-on-surface-variant truncate">{sidebarUser?.email || ""}</p>
-          </div>
-          <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
-        </div>
-
-        <div className="px-4 mb-1">
-          <ThemeToggle />
-        </div>
-        <div onClick={() => navigate("/settings")}
-          className={`text-on-surface-variant hover:bg-surface-container-highest/50 mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all ${active === "settings" ? "bg-surface-container-highest text-primary-container" : ""}`}>
-          <span className="material-symbols-outlined text-xl">settings</span>
-          <span className="font-medium text-sm">Settings</span>
-        </div>
-
-        <div onClick={handleLogout}
-          className="text-on-surface-variant hover:bg-error-container/10 hover:text-error mx-2 rounded-lg flex items-center px-4 py-2 gap-3 cursor-pointer transition-all">
-          <span className="material-symbols-outlined text-xl">logout</span>
-          <span className="font-medium text-sm">Sign Out</span>
-        </div>
-      </div>
-    </aside>
-  );
 }
 
 export default function DashboardPage({ user }) {
@@ -413,27 +326,9 @@ export default function DashboardPage({ user }) {
         </div>
       </main>
 
-      {/* ── MOBILE BOTTOM NAV ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-background/95 backdrop-blur-xl border-t border-outline-variant/15 px-6 py-3 flex justify-between items-center z-50"
-        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
-        {[
-          { icon: "dashboard",  label: "Home",    path: "/dashboard",  active: true },
-          { icon: "menu_book",  label: "Study",   path: "/study" },
-          { icon: "style",      label: "Cards",   path: "/flashcards" },
-          { icon: "insights",   label: "Stats",   path: "/progress" },
-        ].map((item) => (
-          <div key={item.label} onClick={() => navigate(item.path)}
-            className={`flex flex-col items-center gap-1 cursor-pointer ${item.active ? "text-primary-container" : "text-on-surface-variant"}`}>
-            <span className="material-symbols-outlined"
-              style={item.active ? { fontVariationSettings:"'FILL' 1" } : {}}>{item.icon}</span>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">{item.label}</span>
-          </div>
-        ))}
-      </nav>
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>
   );
 }
 
-export { Sidebar };

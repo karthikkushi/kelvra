@@ -1,7 +1,7 @@
 // src/pages/AuthPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signIn, signUp, signInWithGoogle } from "../utils/supabase";
+import { signIn, signUp, signInWithGoogle, resetPassword } from "../utils/firebase";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -49,11 +49,8 @@ export default function AuthPage() {
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) throw error;
-
-        setSuccess("Account created! Check your email to confirm, then log in.");
-        setMode("login");
-        setFullName("");
-        setPassword("");
+        // Firebase signs the new user in straight away.
+        navigate("/onboarding");
       }
     } catch (err) {
       setError(err?.message || "Something went wrong. Please try again.");
@@ -69,12 +66,26 @@ export default function AuthPage() {
     try {
       const { error } = await signInWithGoogle();
       if (error) throw error;
-      // Supabase will redirect automatically
+      // Signed in: the app sends the user to onboarding or the dashboard.
     } catch (err) {
       setError(err?.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgot = async () => {
+    setError("");
+    setSuccess("");
+    if (!email) {
+      setError("Type your email above first, then tap \"Forgot password?\" again.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await resetPassword(email);
+    setLoading(false);
+    if (error) setError(error.message);
+    else setSuccess("If an account exists for this email, a reset link is on its way. Check your inbox and spam folder.");
   };
 
   const inputClass = "w-full p-3 rounded-xl bg-surface-container-highest border border-outline-variant/20 focus:border-primary-container/50 outline-none text-on-surface placeholder:text-on-surface-variant/40 transition-colors font-body text-sm";
@@ -141,6 +152,8 @@ export default function AuthPage() {
               <input
                 type="text"
                 placeholder="Full Name"
+                autoComplete="name"
+                aria-label="Full name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className={inputClass}
@@ -149,6 +162,8 @@ export default function AuthPage() {
 
             <input
               type="email"
+              autoComplete="email"
+              aria-label="Email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -157,11 +172,22 @@ export default function AuthPage() {
 
             <input
               type="password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              aria-label="Password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
             />
+
+            {mode === "login" && (
+              <div className="text-right -mt-2">
+                <button type="button" onClick={handleForgot}
+                  className="text-xs text-on-surface-variant hover:text-primary-container hover:underline">
+                  Forgot password?
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="bg-error-container/10 border border-error/20 rounded-xl px-4 py-3 flex items-center gap-2">

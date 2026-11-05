@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "./DashboardPage";
+import Sidebar from "../components/Sidebar";
 import { getLeaderboard, getUserXP, xpToNextLevel, BADGES } from "../utils/gamification";
 
 export default function LeaderboardPage({ user }) {

@@ -1,6 +1,7 @@
 // Vercel serverless function: POST /api/groq
 // Keeps the Groq key on the server (env GROQ_API_KEY, no VITE_ prefix) so it never ships in the browser bundle.
-// Only logged-in Kelvra users may call it: the browser sends its Supabase access token.
+// Only logged-in Kelvra users may call it: the browser sends its Firebase ID token,
+// which we check with Firebase (Identity Toolkit accounts:lookup) before calling Groq.
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 // Change models here when Groq retires one: https://console.groq.com/docs/deprecations
@@ -11,12 +12,25 @@ const REASONING_ROOM = 1024; // gpt-oss thinks before answering and that counts 
 
 const hasImage = (messages) => messages.some((m) => Array.isArray(m.content) && m.content.some((c) => c.type === "image_url"));
 
+const LOOKUP_URL = "https://identitytoolkit.googleapis.com/v1/accounts:lookup";
+
+// True when Firebase says the token is a valid, unexpired ID token for this project.
 async function isLoggedIn(token, env, fetch) {
-  if (!token) return false;
-  const r = await fetch(`${env.VITE_SUPABASE_URL}/auth/v1/user`, {
-    headers: { apikey: env.VITE_SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` },
-  });
-  return r.ok;
+  if (!token || !env.VITE_FIREBASE_API_KEY) return false;
+  try {
+    // Local dev with `npm run emulators`: ask the Auth emulator instead of Google.
+    const base = env.VITE_FIREBASE_EMULATOR === "true" ? `http://127.0.0.1:9099/${LOOKUP_URL.replace("https://", "")}` : LOOKUP_URL;
+    const r = await fetch(`${base}?key=${encodeURIComponent(env.VITE_FIREBASE_API_KEY)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken: token }),
+    });
+    if (!r.ok) return false;
+    const data = await r.json();
+    return Array.isArray(data?.users) && data.users.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function proxyGroq({ body, token, env, fetch }) {
@@ -33,12 +47,18 @@ export async function proxyGroq({ body, token, env, fetch }) {
       ? { model: VISION_MODEL, reasoning_effort: "none", max_completion_tokens: tokens }
       : { model: TEXT_MODEL, reasoning_effort: "low", include_reasoning: false, max_completion_tokens: tokens + REASONING_ROOM }),
   };
-  const r = await fetch(GROQ_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GROQ_API_KEY}` },
-    body: JSON.stringify(request),
-  });
-  return { status: r.status, data: await r.json() };
+  let r;
+  try {
+    r = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GROQ_API_KEY}` },
+      body: JSON.stringify(request),
+    });
+  } catch {
+    return { status: 502, data: { error: { message: "Could not reach the AI service. Try again in a moment." } } };
+  }
+  const data = await r.json().catch(() => ({ error: { message: "The AI service sent an unreadable answer." } }));
+  return { status: r.status, data };
 }
 
 export default async function handler(req, res) {

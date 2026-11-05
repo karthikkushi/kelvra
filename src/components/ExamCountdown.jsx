@@ -1,7 +1,7 @@
 // src/components/ExamCountdown.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../utils/supabase";
+import { getMeta, setMeta } from "../utils/firebase";
 
 export default function ExamCountdown({ user }) {
   const navigate = useNavigate();
@@ -15,32 +15,18 @@ export default function ExamCountdown({ user }) {
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase
-      .from("exam_goals")
-      .select("*")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) setGoal(data);
-        setLoading(false);
-      });
+    getMeta(user.id, "exam_goal").then((data) => {
+      if (data) setGoal(data);
+      setLoading(false);
+    });
   }, [user]);
 
   const saveGoal = async () => {
     if (!examName || !examDate) return;
     setSaving(true);
-    const { data } = await supabase
-      .from("exam_goals")
-      .upsert({
-        user_id: user.id,
-        exam_name: examName,
-        exam_date: examDate,
-        daily_goal_minutes: dailyGoal,
-        updated_at: new Date().toISOString(),
-      })
-      .select()
-      .single();
-    if (data) setGoal(data);
+    const data = { exam_name: examName, exam_date: examDate, daily_goal_minutes: dailyGoal };
+    setMeta(user.id, "exam_goal", data); // saved in the background, works offline
+    setGoal(data);
     setEditing(false);
     setSaving(false);
   };
@@ -74,9 +60,9 @@ export default function ExamCountdown({ user }) {
   // No goal set — show setup card
   if (!goal && !editing) {
     return (
-      <div
+      <button type="button"
         onClick={() => setEditing(true)}
-        className="bg-surface-container-low border border-dashed border-outline-variant/30 rounded-2xl p-6 cursor-pointer hover:border-primary-container/30 transition-all group">
+        className="w-full text-left bg-surface-container-low border border-dashed border-outline-variant/30 rounded-2xl p-6 cursor-pointer hover:border-primary-container/30 transition-all group">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-surface-container-highest rounded-xl flex items-center justify-center group-hover:bg-primary-container/10 transition-colors">
             <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary-container">event</span>
@@ -87,7 +73,7 @@ export default function ExamCountdown({ user }) {
           </div>
           <span className="material-symbols-outlined text-on-surface-variant ml-auto">add</span>
         </div>
-      </div>
+      </button>
     );
   }
 
@@ -102,11 +88,14 @@ export default function ExamCountdown({ user }) {
         <input
           value={examName}
           onChange={(e) => setExamName(e.target.value)}
-          placeholder="Exam name (e.g. NEET 2025)"
+          placeholder="Exam name (e.g. Biology final)"
+          aria-label="Exam name"
           className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:border-primary-container/50"
         />
         <input
           type="date"
+          aria-label="Exam date"
+          min={new Date().toISOString().slice(0, 10)}
           value={examDate}
           onChange={(e) => setExamDate(e.target.value)}
           className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:border-primary-container/50"
