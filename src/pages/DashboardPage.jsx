@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import { getUserXP } from "../utils/gamification";
 import ExamCountdown from "../components/ExamCountdown";
 import TodayPlan from "../components/TodayPlan";
+import VerifyEmailBanner from "../components/VerifyEmailBanner";
 import ThemeToggle from "../components/ThemeToggle";
 
 function calcStreak(sessions) {
@@ -157,6 +158,7 @@ export default function DashboardPage({ user }) {
         </header>
 
         <div className="px-6 pt-24 max-w-7xl mx-auto space-y-8">
+          <VerifyEmailBanner user={user} />
 
           {/* ── Greeting + AI Coach ── */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

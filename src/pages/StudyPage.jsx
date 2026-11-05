@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import {
@@ -12,6 +12,9 @@ import { saveStudySession } from "../utils/firebase";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled } from "../utils/voice";
 import { awardXP } from "../utils/gamification";
 import { addCardsToDeck } from "../utils/learning";
+import { GuessFirst } from "../components/PlotTwist";
+import WhyCare from "../components/WhyCare";
+import { pickGuessQuestions, normalizeQuestion } from "../utils/plotTwist";
 import { shareStudyKit } from "../utils/sharing";
 import MnemonicCard from "../components/MnemonicCard";
 import { handwritingToText } from "../utils/claudeAPI";
@@ -166,6 +169,9 @@ export default function StudyPage({ user }) {
   const [error, setError] = useState("");
   const [results, setResults] = useState(null);
   const [deckAdded, setDeckAdded] = useState(0);
+  const [guessDone, setGuessDone] = useState(false);
+  // Plot Twist mode: a new kit opens with 2-3 free guesses taken from its own quiz
+  const guessQuestions = useMemo(() => pickGuessQuestions((results?.quiz || []).map(normalizeQuestion)), [results]);
   const [activeResult, setActiveResult] = useState("summary");
   const [pdfText, setPdfText] = useState("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
@@ -316,7 +322,7 @@ export default function StudyPage({ user }) {
     const content = getContent();
     if (!content) { setError("Please add some content first."); return; }
     if (outputs.size === 0) { setError("Please select at least one output type."); return; }
-    setError(""); setResults(null); setDeckAdded(0); setLoading(true);
+    setError(""); setResults(null); setDeckAdded(0); setGuessDone(false); setLoading(true);
 
     const stepInterval = setInterval(() => {
       setLoadStep(LOAD_STEPS[Math.floor(Math.random() * LOAD_STEPS.length)]);
@@ -640,6 +646,11 @@ export default function StudyPage({ user }) {
               </div>
             </div>
 
+            {!guessDone && guessQuestions.length > 0 ? (
+              <GuessFirst questions={guessQuestions} onDone={() => setGuessDone(true)} />
+            ) : (<>
+            {/* Only with a real topic name (a typed topic or a PDF title), not the first words of pasted notes */}
+            {user?.id && ["topic", "pdf"].includes(tab) && <WhyCare user={user} topic={getTopicName()} />}
             <div className="flex gap-3 flex-wrap">
               {RESULT_TABS.map((t) => (
                 <button key={t.id} onClick={() => setActiveResult(t.id)}
@@ -752,6 +763,7 @@ export default function StudyPage({ user }) {
                 </button>
               )}
             </div>
+            </>)}
           </div>
         )}
       </main>

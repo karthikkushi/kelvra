@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import DataControls from "../components/DataControls";
+import VerifyEmailBanner from "../components/VerifyEmailBanner";
+import { InterestPicker } from "../components/YourWorld";
 import { signOut, updateUserProfile } from "../utils/firebase";
 
 export default function SettingsPage({ user }) {
@@ -50,6 +52,7 @@ export default function SettingsPage({ user }) {
         </header>
 
         <div className="px-6 pt-24 max-w-2xl mx-auto space-y-6">
+          <VerifyEmailBanner user={user} />
 
           {/* Profile card */}
           <section className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8">
@@ -131,6 +134,9 @@ export default function SettingsPage({ user }) {
             </button>
           </section>
 
+          {/* Interests and career goal (used by Your-world mode, "Why would I care?" and the mentor) */}
+          <InterestsSection user={user} />
+
           {/* Account actions */}
           <section className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8">
             <h3 className="font-headline text-lg font-bold mb-6 flex items-center gap-2">
@@ -163,5 +169,32 @@ export default function SettingsPage({ user }) {
 
       <style>{`.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}`}</style>
     </div>
+  );
+}
+
+function InterestsSection({ user }) {
+  const meta = user?.user_metadata || {};
+  const [interests, setInterests] = useState(meta.interests || []);
+  const [career, setCareer] = useState(meta.career_goal || "");
+  const [saved, setSaved] = useState(false);
+  const save = () => {
+    updateUserProfile({ interests, career_goal: career.trim().slice(0, 60) || null });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  return (
+    <section className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8 space-y-4">
+      <h3 className="font-headline text-lg font-bold flex items-center gap-2">
+        <span className="material-symbols-outlined text-secondary">interests</span>
+        Your world
+      </h3>
+      <p className="text-sm text-on-surface-variant">Quizzes can be retold in things you love, and your mentor can link topics to the career you want.</p>
+      <InterestPicker value={interests} onChange={setInterests} />
+      <label className="block text-xs text-on-surface-variant">Dream career (optional)
+        <input value={career} onChange={(e) => setCareer(e.target.value)} maxLength={60} placeholder="e.g. doctor, game designer, civil servant"
+          className="mt-1 w-full bg-surface-container-highest border border-outline-variant/20 rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:border-primary-container/50" />
+      </label>
+      <button onClick={save} className="px-5 py-2.5 rounded-xl bg-primary-container text-on-primary-container font-bold text-sm">{saved ? "Saved ✓" : "Save"}</button>
+    </section>
   );
 }

@@ -9,6 +9,7 @@ import { collection, doc, addDoc, setDoc, deleteDoc, query, where, orderBy, limi
 import { db, readDoc, readQuery, saveLater, listRecent } from "./firebase";
 import { textId, localDateKey, randomId } from "./hash";
 import { newCard, schedule } from "./srs";
+import { twistDueKey, twistsDue } from "./plotTwist";
 
 const col = (uid, name) => collection(db, "users", uid, name);
 const ref = (uid, name, id) => doc(db, "users", uid, name, id);
@@ -39,8 +40,9 @@ export function saveMistake(uid, { question, options, correct, chosen, explanati
     topic: topic || "General",
     wrong_count: increment(1),
     mastered: false,
-    // "Sure but wrong" mistakes are fixed first (hypercorrection effect)
+    // "Sure but wrong" mistakes are fixed first (hypercorrection effect) and come back tomorrow
     confident: confidence === "sure",
+    ...(confidence === "sure" ? { twist_due: twistDueKey() } : {}),
     confidence: confidence || null,
     last_wrong: nowIso(),
   }, { merge: true }), "Save mistake");
@@ -164,7 +166,7 @@ export async function getLearningSnapshot(uid) {
   const byTopic = {};
   open.forEach((m) => { byTopic[m.topic] = (byTopic[m.topic] || 0) + 1; });
   const mistakeTopics = Object.entries(byTopic).sort((a, b) => b[1] - a[1]).map(([topic, count]) => ({ topic, count }));
-  return { dueCards: due.length, openMistakes: open.length, mistakeTopics, checkins };
+  return { dueCards: due.length, openMistakes: open.length, plotTwistsDue: twistsDue(mistakes).length, mistakeTopics, checkins };
 }
 
 // ── Habit & behaviour coach ──
@@ -221,3 +223,22 @@ export async function getWeekStats(uid) {
     },
   };
 }
+
+// ── "Why would I care?" (relevance written by the student, once per topic) ──
+// users/{uid}/relevance/{id}: topic, text, career, created_at
+export function saveRelevance(uid, topic, text, career = null) {
+  if (!ok(uid) || !topic || !text) return;
+  saveLater(setDoc(ref(uid, "relevance", textId(topic, "r")), { topic, text, career, created_at: nowIso() }), "Save relevance note");
+}
+
+export async function getRelevance(uid, topic) {
+  if (!ok(uid) || !topic) return null;
+  try {
+    const snap = await readDoc(ref(uid, "relevance", textId(topic, "r")), 4000);
+    return snap.exists() ? snap.data() : null;
+  } catch {
+    return null;
+  }
+}
+
+export const getRelevanceNotes = (uid, max = 5) => list(uid, "relevance", orderBy("created_at", "desc"), limit(max));

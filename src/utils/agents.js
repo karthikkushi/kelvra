@@ -3,6 +3,7 @@
 // 4 intelligent agents that power personalized learning
 
 import { listRecent, setMeta } from "./firebase";
+import { readinessRange, daysStudiedLast7 } from "./forecast";
 import { groqFetch } from "./claudeAPI";
 
 async function callGroq(prompt, maxTokens = 1000) {
@@ -111,7 +112,7 @@ export async function runObserverAgent(userId) {
         insights: {
           masteredTopics: [],
           weakTopics: [],
-          studyStreak: 0,
+          daysStudied7: 0,
           totalSessions: 0,
           averageScore: 0,
           knowledgeMap: [],
@@ -138,19 +139,8 @@ export async function runObserverAgent(userId) {
       status: data.scores[data.scores.length - 1] >= 80 ? "mastered" : data.scores[data.scores.length - 1] >= 60 ? "learning" : "weak",
     }));
 
-    // Calculate streak
-    const sessionDates = sessions
-      ? [...new Set(sessions.map((s) => s.created_at.split("T")[0]))].sort().reverse()
-      : [];
-    let streak = 0;
-    const today = new Date().toISOString().split("T")[0];
-    for (let i = 0; i < sessionDates.length; i++) {
-      const expected = new Date(today);
-      expected.setDate(expected.getDate() - i);
-      const expectedStr = expected.toISOString().split("T")[0];
-      if (sessionDates[i] === expectedStr) streak++;
-      else break;
-    }
+    // Days studied in the last 7 (forgiving; Kelvra never counts fragile day-streaks)
+    const daysStudied7 = daysStudiedLast7([...(sessions || []), ...scores].map((x) => x.created_at));
 
     const avgScore = Math.round(scores.reduce((a, b) => a + b.pct, 0) / scores.length);
     const masteredTopics = knowledgeMap.filter((t) => t.status === "mastered").map((t) => t.topic);
@@ -161,7 +151,7 @@ export async function runObserverAgent(userId) {
 - Mastered: ${masteredTopics.join(", ") || "none yet"}
 - Weak: ${weakTopics.join(", ") || "none yet"}
 - Average score: ${avgScore}%
-- Study streak: ${streak} days
+- Studied on ${daysStudied7} of the last 7 days
 
 Write ONE short, specific, encouraging recommendation (max 20 words) for what they should do today.`;
 
@@ -172,7 +162,7 @@ Write ONE short, specific, encouraging recommendation (max 20 words) for what th
       insights: {
         masteredTopics,
         weakTopics,
-        studyStreak: streak,
+        daysStudied7,
         totalSessions: sessions?.length || 0,
         averageScore: avgScore,
         knowledgeMap,
@@ -295,9 +285,7 @@ export async function runPredictorAgent(userId, examName = "your exam") {
       return {
         success: true,
         prediction: {
-          readinessScore: 0,
-          predictedGrade: "Not enough data",
-          confidence: 0,
+          range: null,
           top3Focus: [],
           trend: "neutral",
           message: "Complete at least 3 quizzes to get your exam readiness prediction.",
@@ -306,26 +294,8 @@ export async function runPredictorAgent(userId, examName = "your exam") {
       };
     }
 
-    // Calculate readiness score (weighted: recent scores count more)
-    let weightedSum = 0;
-    let weightTotal = 0;
-    scores.forEach((s, i) => {
-      const weight = 1 / (i + 1); // More recent = higher weight
-      weightedSum += s.pct * weight;
-      weightTotal += weight;
-    });
-    const readinessScore = Math.round(weightedSum / weightTotal);
-
-    // Predict grade
-    const predictedGrade =
-      readinessScore >= 90 ? "A+" :
-      readinessScore >= 80 ? "A" :
-      readinessScore >= 70 ? "B+" :
-      readinessScore >= 60 ? "B" :
-      readinessScore >= 50 ? "C" : "Needs Work";
-
-    // Confidence based on number of attempts
-    const confidence = Math.min(95, 50 + scores.length * 3);
+    // Readiness as a RANGE with stated assumptions, never one exact number or a promised grade
+    const range = readinessRange(scores);
 
     // Find top 3 topics to focus on (lowest scores)
     const topicAvg = {};
@@ -363,25 +333,22 @@ export async function runPredictorAgent(userId, examName = "your exam") {
 
     // AI prediction message
     const prompt = `Student exam prediction:
-- Readiness: ${readinessScore}%
-- Predicted grade: ${predictedGrade}
+- Readiness range on quiz-style questions: ${range.low}-${range.high}% (from ${range.n} quizzes; uncertain)
 - Trend: ${trend}
 - Weakest topics: ${top3Focus.map((t) => t.topic).join(", ")}
 - Exam: ${examName}
 
 Write a specific, actionable 2-sentence prediction message.
-Sentence 1: Their current readiness and predicted outcome.
+Sentence 1: Where they stand now, as a range. Never promise a grade, rank or exam result.
 Sentence 2: The single most important thing to do in the next 48 hours.
-Be direct and specific.`;
+Be direct, specific and encouraging.`;
 
     const message = await callGroq(prompt, 150);
 
     return {
       success: true,
       prediction: {
-        readinessScore,
-        predictedGrade,
-        confidence,
+        range,
         top3Focus,
         trend,
         message: message.trim(),

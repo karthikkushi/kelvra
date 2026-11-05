@@ -6,6 +6,10 @@ import { awardXP } from "../utils/gamification";
 import { saveMistake, saveConfidence } from "../utils/learning";
 import { LEVELS, calibrationSummary } from "../utils/confidence";
 import { getHint } from "../utils/claudeAPI";
+import { TwistReplay } from "../components/PlotTwist";
+import { isPlotTwist } from "../utils/plotTwist";
+import { WorldModeBar } from "../components/YourWorld";
+import { worldify } from "../utils/yourWorld";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const QUESTIONS = [
@@ -118,7 +122,11 @@ function topicOf(question) {
 
 export default function QuizPage({ user }) {
   const navigate = useNavigate();
-  const [questions] = useState(storedQuestions);
+  const [questions, setQuestions] = useState(storedQuestions);
+  // Your-world mode: the same questions retold in an interest the student picked
+  const [world, setWorld] = useState(null);
+  const [worldBusy, setWorldBusy] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
   const isSample = questions === QUESTIONS; // the built-in demo quiz is not saved to the notebook
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -136,6 +144,23 @@ export default function QuizPage({ user }) {
   }, [qIndex]);
 
   const q = questions[qIndex];
+  const shownQuestion = !showOriginal && q.world_question ? q.world_question : q.question;
+
+  const pickWorld = async (interestId) => {
+    if (!interestId) { setWorld(null); setQuestions((qs) => qs.map((x) => ({ ...x, world_question: null, world: null }))); return; }
+    setWorldBusy(true);
+    try {
+      const { questions: retold, kept } = await worldify(questions, interestId, topicOf(questions[0]));
+      setQuestions(retold);
+      setWorld(interestId);
+      setShowOriginal(false);
+      setBuddyMsg(kept ? `Retold ${kept} of ${retold.length} questions. Same answers, your world.` : "These questions stay as they are; they couldn't be retold safely.");
+    } catch (err) {
+      setBuddyMsg(err.message || "Could not retell the questions.");
+    } finally {
+      setWorldBusy(false);
+    }
+  };
   const answered = answers[qIndex] !== undefined;
   const correct = answers[qIndex] === q.correct;
   const score = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
@@ -151,6 +176,9 @@ export default function QuizPage({ user }) {
   const [pending, setPending] = useState(null);
   const [confidences, setConfidences] = useState({});
   const [hintLoading, setHintLoading] = useState(false);
+  // Plot Twist mode: "Sure but wrong" questions get a second look at the end of the quiz
+  const [twists, setTwists] = useState([]);
+  const [replaying, setReplaying] = useState(false);
 
   const pick = (id) => {
     if (answered) return;
@@ -174,6 +202,7 @@ export default function QuizPage({ user }) {
     setPending(null);
     setAnswers({ ...answers, [qIndex]: id });
     setConfidences({ ...confidences, [qIndex]: confidence });
+    if (isPlotTwist(confidence, id === q.correct)) setTwists((t) => [...t, qIndex]);
     if (user?.id && !isSample) saveConfidence(user.id, { topic: topicOf(q), confidence, correct: id === q.correct });
     setShowExplanation(true);
     if (voiceOn) {
@@ -200,7 +229,9 @@ export default function QuizPage({ user }) {
     if (qIndex < total - 1) {
       setQIndex(qIndex + 1);
     } else {
-      setDone(true);
+      // Plot twists get a second look before the results
+      if (twists.length) setReplaying(true);
+      else setDone(true);
       // Save quiz score (non-blocking, works offline). The demo quiz is not saved.
       if (user?.id && !isSample) {
         try {
@@ -231,6 +262,17 @@ export default function QuizPage({ user }) {
   };
 
   // ── Results screen ──
+  if (replaying) {
+    return (
+      <div className="min-h-screen bg-background text-on-surface font-body">
+        <Sidebar active="quiz" />
+        <main className="md:ml-64 min-h-screen flex items-center justify-center p-4 sm:p-8 pb-28">
+          <TwistReplay items={twists.map((i) => questions[i])} onDone={() => { setReplaying(false); setDone(true); }} />
+        </main>
+      </div>
+    );
+  }
+
   if (done) {
     const pct = Math.round((score / total) * 100);
     return (
@@ -365,10 +407,12 @@ export default function QuizPage({ user }) {
         {/* Quiz content */}
         <section className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 gap-8 max-w-5xl mx-auto w-full">
 
+          <WorldModeBar user={user} active={world} busy={worldBusy} onPick={pickWorld} />
+
           {/* Question card */}
           <div className="w-full bg-surface-container-low rounded-[2rem] p-6 sm:p-8 lg:p-12 relative overflow-hidden border border-outline-variant/5">
             <div className="absolute top-0 right-0 p-6">
-              <button onClick={() => speak(q.question)}
+              <button onClick={() => speak(shownQuestion)}
                 className="p-3 bg-surface-container-highest rounded-full text-primary-container hover:scale-110 transition-transform border border-outline-variant/10">
                 <span className="material-symbols-outlined" style={{ fontVariationSettings:"'FILL' 1" }}>volume_up</span>
               </button>
@@ -378,8 +422,13 @@ export default function QuizPage({ user }) {
                 Question {qIndex + 1} of {total}
               </span>
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-headline font-bold text-on-surface leading-tight pr-12">
-                {q.question}
+                {shownQuestion}
               </h2>
+              {q.world_question && (
+                <button onClick={() => setShowOriginal((v) => !v)} className="text-xs text-on-surface-variant underline">
+                  {showOriginal ? "Show my-world version" : "Your-world version · show original question"}
+                </button>
+              )}
             </div>
             <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-primary-fixed/5 blur-[80px] rounded-full pointer-events-none" />
           </div>
@@ -447,8 +496,8 @@ export default function QuizPage({ user }) {
                 </div>
                 <div className="space-y-2 flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className={`font-headline font-bold text-lg ${correct ? "text-primary-fixed" : "text-error"}`}>
-                      {correct ? "Correct! ✓" : "Not quite ✗"}
+                    <h4 className={`font-headline font-bold text-lg ${correct ? "text-primary-fixed" : isPlotTwist(confidences[qIndex], false) ? "text-secondary" : "text-error"}`}>
+                      {correct ? "Correct! ✓" : isPlotTwist(confidences[qIndex], false) ? `Plot twist! You were sure, but it's ${q.correct}.` : "Not quite ✗"}
                     </h4>
                     <button onClick={() => setShowExplanation(false)}
                       className="text-on-surface-variant hover:text-on-surface transition-colors">
@@ -456,6 +505,13 @@ export default function QuizPage({ user }) {
                     </button>
                   </div>
                   <p className="text-on-surface-variant text-sm leading-relaxed">{q.explanation}</p>
+                  {/* The panel can cover the page's own Next button on short screens, so it has its own */}
+                  {answered && (
+                    <button onClick={next}
+                      className="mt-2 px-6 py-2.5 bg-primary-fixed text-on-primary-fixed rounded-xl font-bold font-headline text-sm">
+                      {qIndex < total - 1 ? "Next Question" : "See Results"}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

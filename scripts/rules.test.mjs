@@ -3,20 +3,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signOut } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator, doc, setDoc, getDoc, getDocs, collection, updateDoc, increment } from "firebase/firestore";
+import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword, signInAnonymously, signOut } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator, doc, setDoc, getDoc, getDocs, collection, updateDoc, increment, writeBatch } from "firebase/firestore";
 
 const config = { apiKey: "demo-key", authDomain: "demo-kelvra.firebaseapp.com", projectId: "demo-kelvra", appId: "demo" };
 const run = Date.now();
 
-async function client(name, signedIn = true) {
+async function client(name, signedIn = true, anonymous = false) {
   const app = initializeApp(config, `${name}-${run}`);
   const auth = getAuth(app);
   connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
   const db = getFirestore(app);
   connectFirestoreEmulator(db, "127.0.0.1", 8080);
   let uid = null;
-  if (signedIn) uid = (await createUserWithEmailAndPassword(auth, `${name}-${run}@test.dev`, "secret123")).user.uid;
+  if (anonymous) uid = (await signInAnonymously(auth)).user.uid;
+  else if (signedIn) uid = (await createUserWithEmailAndPassword(auth, `${name}-${run}@test.dev`, "secret123")).user.uid;
   return { app, auth, db, uid };
 }
 
@@ -25,6 +26,8 @@ const denied = (p) => assert.rejects(p, (e) => e.code === "permission-denied");
 const alice = await client("alice");
 const bob = await client("bob");
 const guest = await client("guest", false);
+const anon = await client("anon", false, true);   // a Daily Grid player without an account
+const anon2 = await client("anon2", false, true);
 
 test("a student can save and read their own data", async () => {
   await setDoc(doc(alice.db, "users", alice.uid), { full_name: "Alice" });
@@ -76,6 +79,45 @@ test("shared kits: anyone with the link can open and count a view, nothing else"
   await denied(setDoc(doc(bob.db, "shared_kits", `zzz${run}`), { user_id: alice.uid, views: 0 }));
 });
 
+test("anonymous Daily Grid players can't touch study data, the leaderboard or shared kits", async () => {
+  await denied(setDoc(doc(anon.db, "users", anon.uid), { full_name: "x" }));
+  await denied(setDoc(doc(anon.db, "users", anon.uid, "mistakes", "m1"), { q: "x" }));
+  await denied(setDoc(doc(anon.db, "leaderboard", anon.uid), { total_xp: 10, weekly_xp: 10 }));
+  await denied(getDocs(collection(anon.db, "leaderboard")));
+  await denied(setDoc(doc(anon.db, "shared_kits", `anon${run}`), { user_id: anon.uid, views: 0 }));
+});
+
+// Helper: one full Daily Grid vote (vote doc + 5 counters) in one batch, like the app does
+function vote(c, key, picks) {
+  const b = writeBatch(c.db);
+  b.set(doc(c.db, "grid_votes", `${key}_${c.uid}`), { puzzle: key, uid: c.uid, answers: picks, score: 0, created_at: "now" });
+  picks.forEach((p, i) => b.set(doc(c.db, "grid_stats", `${key}_q${i}`), { [p]: increment(1), total: increment(1) }, { merge: true }));
+  return b.commit();
+}
+
+test("daily grid: one vote per player, counters only +1, crowd counts public", async () => {
+  const key = `neet-${run % 100000}`;
+  await vote(anon, key, ["A", "B", "C", "D", "A"]);
+  await vote(anon2, key, ["A", "C", "C", "D", "B"]);
+  const q0 = (await getDoc(doc(guest.db, "grid_stats", `${key}_q0`))).data();   // readable without any account
+  assert.deepEqual({ A: q0.A, total: q0.total }, { A: 2, total: 2 });
+  const q1 = (await getDoc(doc(guest.db, "grid_stats", `${key}_q1`))).data();
+  assert.deepEqual([q1.B, q1.C, q1.total], [1, 1, 2]);
+  // Same player again: the vote already exists, so the whole batch is refused
+  await denied(vote(anon, key, ["B", "B", "B", "B", "B"]));
+  assert.equal((await getDoc(doc(guest.db, "grid_stats", `${key}_q0`))).data().total, 2);
+  // Counters can't be changed without a new vote, or by more than 1
+  await denied(updateDoc(doc(anon.db, "grid_stats", `${key}_q0`), { A: increment(1), total: increment(1) }));
+  const b = writeBatch(bob.db);
+  b.set(doc(bob.db, "grid_votes", `${key}_${bob.uid}`), { puzzle: key, uid: bob.uid, answers: ["A", "A", "A", "A", "A"], score: 0, created_at: "now" });
+  b.set(doc(bob.db, "grid_stats", `${key}_q0`), { A: increment(5), total: increment(5) }, { merge: true });
+  await denied(b.commit());
+  // Players see only their own vote; a vote can't be filed under someone else's id
+  assert.equal((await getDoc(doc(anon.db, "grid_votes", `${key}_${anon.uid}`))).data().answers[0], "A");
+  await denied(getDoc(doc(anon2.db, "grid_votes", `${key}_${anon.uid}`)));
+  await denied(setDoc(doc(anon2.db, "grid_votes", `${key}_${anon.uid}`), { puzzle: key, uid: anon.uid, answers: ["A", "A", "A", "A", "A"] }));
+});
+
 test.after(async () => {
-  for (const c of [alice, bob, guest]) { await signOut(c.auth); await deleteApp(c.app); }
+  for (const c of [alice, bob, guest, anon, anon2]) { await signOut(c.auth); await deleteApp(c.app); }
 });

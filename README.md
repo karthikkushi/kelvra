@@ -60,6 +60,18 @@ npm run build       # production build into dist/
     note to a junior; optional worry dump that is never saved. Today's plan offers it when an exam is ≤ 3 days away and gets
     lighter after a poor night's sleep.
   - **Leaderboard is opt-in**: nobody is listed unless they choose to be (enforced in `firestore.rules`).
+- **Curiosity features** (from [`reports/Kelvra unique curiosity features.md`](reports/)):
+  - **Plot Twist mode:** new study kits open with 2-3 free guesses; a "Sure but wrong" answer gets a plot-twist reveal, a
+    second look at the end of the quiz, and comes back the next day in Today's plan ([`src/utils/plotTwist.js`](src/utils/plotTwist.js)).
+  - **Your-world mode** (Quiz): questions retold in an interest the student picked (cricket, music, coding...). Only the
+    question text changes; every number must survive the rewrite or the original is kept ([`src/utils/yourWorld.js`](src/utils/yourWorld.js)).
+    **"Why would I care?"**: once per topic the student writes why it matters to them.
+  - **Parent Explainer notes** (`/explain`, public): one-minute explainers in English and Hindi (percentile, normalisation,
+    counselling, two board exams, rumours, sleep...), read aloud by the phone, with official sources ([`src/data/explainers.js`](src/data/explainers.js)).
+  - **Daily Grid** (`/grid`, no sign-up): one shared 5-question puzzle a day per exam, a spoiler-free share grid
+    (`Kelvra NEET #5 4/5 🟩🟩🟨🟩⬛`) and how other players answered ([`src/utils/grid.js`](src/utils/grid.js), bank in
+    [`src/data/gridBank.js`](src/data/gridBank.js)). Votes and counts are protected by `firestore.rules`.
+  - **Exam forecast** shows a readiness *range* with its assumptions, and "days studied (last 7)" instead of a streak.
 - **Safety:** messages that sound like self-harm are not sent to the AI or saved; the student sees Tele-MANAS 14416 instead
   ([`src/utils/safety.js`](src/utils/safety.js)). Onboarding asks only an age group; unknown age is treated as under 18.
 
@@ -100,6 +112,9 @@ The free Spark plan is enough to start and, unlike Supabase's free tier, does no
 | `VITE_LEGAL_NAME`, `VITE_CONTACT_EMAIL`, `VITE_GRIEVANCE_OFFICER` | Shown on `/privacy` and `/terms` |
 | Firebase > Authentication > Templates | Check the verification email's sender name and wording |
 | `firestore.rules` deployed | `npx firebase-tools deploy --only firestore:rules` |
+| Firebase > Authentication > Sign-in method > **Anonymous**: enable | Lets visitors play the Daily Grid without an account |
+| A teacher checks `src/data/gridBank.js` | Then set `reviewed: true` per puzzle; until then the grid says "teacher check pending" |
+| A teacher checks `src/data/explainers.js`; a native speaker checks the Hindi | Exam rules change yearly; update `EXPLAINERS_CHECKED` |
 
 Already in the code: email verification before AI (`api/groq.js`), request size limits, per-student daily and per-minute
 AI limits (`api/_limits.js`), Download my data and Delete my account (Settings, `src/utils/account.js`), Privacy policy

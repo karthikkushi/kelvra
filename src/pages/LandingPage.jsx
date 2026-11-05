@@ -144,6 +144,10 @@ export default function LandingPage() {
               </a>
             </div>
             <p className="text-xs text-on-surface-variant/70 mt-5">No credit card · 10 languages · Installs on your phone</p>
+            <a href="/grid" className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-primary-container hover:underline">
+              <span className="material-symbols-outlined text-lg" style={filled}>grid_view</span>
+              Play today's Daily Grid: 5 questions, no sign-up →
+            </a>
           </div>
           <HeroPreview />
         </section>
@@ -283,6 +287,7 @@ export default function LandingPage() {
           </div>
           <p className="text-xs text-on-surface-variant">© {new Date().getFullYear()} Kelvra · Made for students everywhere</p>
           <div className="flex gap-5 text-xs text-on-surface-variant">
+            <a href="/explain" className="hover:text-primary-container">For parents</a>
             <a href="/privacy" className="hover:text-primary-container">Privacy</a>
             <a href="/terms" className="hover:text-primary-container">Terms</a>
           </div>

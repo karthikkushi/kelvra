@@ -14,7 +14,7 @@
 //   shared_kits/{shareId}              public study kits (read by anyone with the link)
 import { initializeApp } from "firebase/app";
 import {
-  getAuth, connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  getAuth, connectAuthEmulator, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInAnonymously,
   signInWithPopup, GoogleAuthProvider, signOut as fbSignOut, updateProfile, sendPasswordResetEmail, sendEmailVerification,
 } from "firebase/auth";
 import {
@@ -152,7 +152,8 @@ function emit(user) {
 }
 
 if (auth) {
-  onAuthStateChanged(auth, async (fbUser) => emit(fbUser ? await buildUser(fbUser) : null));
+  // Anonymous sessions (used only to play the public Daily Grid) count as signed out for the app.
+  onAuthStateChanged(auth, async (fbUser) => emit(fbUser && !fbUser.isAnonymous ? await buildUser(fbUser) : null));
 } else {
   currentUser = null;
 }
@@ -340,3 +341,19 @@ export function setMeta(userId, name, data) {
   if (!db || !userId) return;
   saveLater(setDoc(metaDoc(userId, name), { ...data, updated_at: nowIso() }, { merge: true }), `Save ${name}`);
 }
+
+// Daily Grid can be played without an account: it uses a silent anonymous session, which the
+// rest of the app treats as signed out. Returns the uid, or null if Firebase isn't set up.
+export async function ensurePlayer() {
+  if (!auth) return null;
+  if (auth.currentUser) return auth.currentUser.uid;
+  try {
+    const cred = await signInAnonymously(auth);
+    return cred.user.uid;
+  } catch (err) {
+    console.error("Anonymous play is not available:", err.code || err.message);
+    return null;
+  }
+}
+
+export const isRealUser = () => Boolean(auth?.currentUser && !auth.currentUser.isAnonymous);

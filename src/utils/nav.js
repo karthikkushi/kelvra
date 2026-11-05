@@ -23,6 +23,7 @@ export const SECTIONS = [
       { id: "quiz",     label: "Quiz",         icon: "quiz",            path: "/quiz" },
       { id: "mistakes", label: "Mistakes",     icon: "assignment_late", path: "/mistakes" },
       { id: "answer",   label: "Answer coach", icon: "draw",            path: "/answer" },
+      { id: "grid",     label: "Daily Grid",   icon: "grid_view",       path: "/grid" },
     ],
   },
   {

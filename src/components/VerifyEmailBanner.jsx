@@ -1,5 +1,6 @@
 // src/components/VerifyEmailBanner.jsx
 // Reminds email/password users to verify their email (needed for AI features). Google accounts are already verified.
+// Shown as a normal card at the top of Home and Settings (a floating card covered buttons on other pages).
 import { useState } from "react";
 import { resendVerification, reloadUser } from "../utils/firebase";
 
@@ -25,7 +26,7 @@ export default function VerifyEmailBanner({ user }) {
 
   return (
     <div role="status"
-      className="fixed z-[55] left-3 right-3 bottom-20 md:left-auto md:right-6 md:bottom-6 md:max-w-sm bg-surface-container-high border border-tertiary-fixed-dim/40 shadow-2xl rounded-2xl px-4 py-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-2">
+      className="bg-tertiary-container/15 border border-tertiary-fixed-dim/40 rounded-2xl px-4 py-3 text-sm flex flex-wrap items-center gap-x-4 gap-y-2">
       <span className="flex items-center gap-2 text-on-surface">
         <span className="material-symbols-outlined text-tertiary-fixed-dim text-lg">mark_email_unread</span>
         Verify your email ({user.email}) to use AI features.

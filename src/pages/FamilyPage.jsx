@@ -11,6 +11,7 @@ import { getMeta, setMeta } from "../utils/firebase";
 import { buildBehaviourReport, ifThenSentence, experimentProgress } from "../utils/habits";
 import { weekStart, isAdult } from "../utils/mentor";
 import { detectCrisis } from "../utils/safety";
+import { EXPLAINERS, explainerById, explainerUrl } from "../data/explainers";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
 
@@ -18,6 +19,7 @@ export default function FamilyPage({ user }) {
   const [stats, setStats] = useState(null);
   const [prefs, setPrefs] = useState(null);
   const [note, setNote] = useState("");
+  const [explainerId, setExplainerId] = useState("");
   const [copied, setCopied] = useState(false);
   const [crisis, setCrisis] = useState(false);
   const meta = user?.user_metadata || {};
@@ -63,7 +65,8 @@ export default function FamilyPage({ user }) {
     setPrefs(merged);
     setMeta(user.id, "family", { share: merged.share, lang: merged.lang, paused: merged.paused, ...(merged.last_sent ? { last_sent: merged.last_sent } : {}) });
   };
-  const digest = buildFamilyDigest(stats, prefs.share, prefs.lang, note);
+  const chosen = explainerById(explainerId);
+  const digest = buildFamilyDigest(stats, prefs.share, prefs.lang, note, chosen ? { title: chosen.title, url: explainerUrl(chosen.id) } : null);
 
   const markSent = () => update({ last_sent: new Date().toISOString() });
   const guard = (fn) => () => {
@@ -124,6 +127,14 @@ export default function FamilyPage({ user }) {
                 <label className="block text-xs text-on-surface-variant">A note from you (optional)
                   <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={200}
                     placeholder="e.g. Tough week. I'd like Sunday morning off." className="mt-1 w-full bg-surface-container border border-outline-variant/15 rounded-xl px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:border-primary-container/50" />
+                </label>
+                <label className="block text-xs text-on-surface-variant">Add a 1-minute explainer for your family (optional)
+                  <select value={explainerId} onChange={(e) => setExplainerId(e.target.value)}
+                    className="mt-1 w-full bg-surface-container border border-outline-variant/15 rounded-xl px-3 py-2.5 text-sm text-on-surface">
+                    <option value="">None</option>
+                    {EXPLAINERS.map((x) => <option key={x.id} value={x.id}>{x.title[prefs.lang] || x.title.en}</option>)}
+                  </select>
+                  <span className="block mt-1">Opens without an account. Your family can read it or have the phone read it aloud. <a href="/explain" target="_blank" rel="noopener noreferrer" className="underline">See them all</a></span>
                 </label>
                 <label className="flex items-center justify-between gap-3 cursor-pointer">
                   <span className="text-sm text-on-surface">Pause updates (exam week or a break)</span>

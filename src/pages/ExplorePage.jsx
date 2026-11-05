@@ -1,7 +1,7 @@
 // src/pages/ExplorePage.jsx
 // Career & project explorer: for any topic, real-world uses, jobs, a hands-on project and interview questions.
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { exploreTopic } from "../utils/mentor";
 import { getExplorations, saveExploration, deleteExploration } from "../utils/learning";
@@ -91,7 +91,8 @@ function Result({ data, onMentor }) {
 
 export default function ExplorePage({ user }) {
   const navigate = useNavigate();
-  const [topic, setTopic] = useState("");
+  const [params] = useSearchParams();
+  const [topic, setTopic] = useState(() => params.get("topic") || "");
   const [saved, setSaved] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [current, setCurrent] = useState(null); // { id, topic, ...result }

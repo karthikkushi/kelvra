@@ -29,7 +29,8 @@ const FamilyPage      = lazy(() => import("./pages/FamilyPage"));
 const DebriefPage     = lazy(() => import("./pages/DebriefPage"));
 const ResetPage       = lazy(() => import("./pages/ResetPage"));
 const LegalPage       = lazy(() => import("./pages/LegalPage"));
-const VerifyEmailBanner = lazy(() => import("./components/VerifyEmailBanner"));
+const ExplainerPage   = lazy(() => import("./pages/ExplainerPage"));
+const GridPage        = lazy(() => import("./pages/GridPage"));
 const SharedKitPage   = lazy(() => import("./pages/SharedKitPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 
@@ -96,7 +97,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
-      {user && !user.email_verified && <Suspense fallback={null}><VerifyEmailBanner user={user} /></Suspense>}
       <PageErrorBoundary>
         <Suspense fallback={<Loading />}>
           <Routes>
@@ -122,6 +122,9 @@ export default function App() {
             <Route path="/debrief"     element={guard(<DebriefPage     user={user} />)} />
             <Route path="/reset"       element={guard(<ResetPage       user={user} />)} />
             <Route path="/leaderboard" element={guard(<LeaderboardPage user={user} />)} />
+            <Route path="/grid"        element={firebaseReady ? <GridPage user={user} /> : <SetupNeeded />} />
+            <Route path="/explain"     element={<ExplainerPage />} />
+            <Route path="/explain/:id" element={<ExplainerPage />} />
             <Route path="/privacy"     element={<LegalPage doc="privacy" />} />
             <Route path="/terms"       element={<LegalPage doc="terms" />} />
             <Route path="/shared/:shareId" element={firebaseReady ? <SharedKitPage /> : <SetupNeeded />} />

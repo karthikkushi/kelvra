@@ -12,6 +12,7 @@ import { setMeta } from "../utils/firebase";
 import { weekStart, isAdult } from "../utils/mentor";
 import { detectCrisis } from "../utils/safety";
 import { ifThenSentence } from "../utils/habits";
+import { explainerUrl } from "../data/explainers";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
 const FEELINGS = ["😞 Upset", "😠 Frustrated", "😐 Okay", "🤔 Confused", "😌 Relieved"];
@@ -57,7 +58,7 @@ export default function DebriefPage({ user }) {
     setHabitSet(true);
   };
 
-  const message = parentMessage({ test: test.trim() || (lang === "hi" ? "टेस्ट" : "test"), learned, fix: fix ? ifThenSentence(fix) : "", lang });
+  const message = parentMessage({ test: test.trim() || (lang === "hi" ? "टेस्ट" : "test"), learned, fix: fix ? ifThenSentence(fix) : "", lang, guideUrl: explainerUrl("after-test") });
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body">

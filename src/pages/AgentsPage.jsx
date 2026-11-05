@@ -116,8 +116,8 @@ export default function AgentsPage({ user }) {
             {results.observer?.insights && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 text-center">
-                  <div className="font-headline text-3xl font-extrabold text-primary-container">{results.observer.insights.studyStreak}</div>
-                  <div className="text-xs text-on-surface-variant uppercase tracking-widest mt-1">Day Streak</div>
+                  <div className="font-headline text-3xl font-extrabold text-primary-container">{results.observer.insights.daysStudied7 ?? 0}<span className="text-lg text-on-surface-variant">/7</span></div>
+                  <div className="text-xs text-on-surface-variant uppercase tracking-widest mt-1">Days studied (last 7)</div>
                 </div>
                 <div className="bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 text-center">
                   <div className="font-headline text-3xl font-extrabold text-secondary">{results.observer.insights.averageScore}%</div>
@@ -274,25 +274,26 @@ export default function AgentsPage({ user }) {
             {results.predictor?.prediction && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Readiness gauge */}
-                  <div className="md:col-span-1 bg-surface-container-low border border-outline-variant/10 rounded-2xl p-8 flex flex-col items-center justify-center">
-                    <div className="relative w-36 h-36 rounded-full flex items-center justify-center"
-                      style={{ background: `conic-gradient(#6ee7b7 ${results.predictor.prediction.readinessScore}%, #1c2030 0)` }}>
-                      <div className="absolute inset-2 bg-surface-container-low rounded-full flex flex-col items-center justify-center">
-                        <span className="font-headline text-3xl font-extrabold text-primary-container">
-                          {results.predictor.prediction.readinessScore}%
-                        </span>
-                        <span className="text-xs text-on-surface-variant">Ready</span>
-                      </div>
-                    </div>
-                    <div className="mt-4 text-center">
-                      <div className="font-headline text-2xl font-bold text-on-surface">
-                        {results.predictor.prediction.predictedGrade}
-                      </div>
-                      <div className="text-xs text-on-surface-variant mt-1">
-                        Predicted grade · {results.predictor.prediction.confidence}% confidence
-                      </div>
-                    </div>
+                  {/* Readiness as a range, with its assumptions (never one exact % or a promised grade) */}
+                  <div className="md:col-span-1 bg-surface-container-low border border-outline-variant/10 rounded-2xl p-6 flex flex-col justify-center">
+                    {results.predictor.prediction.range ? (() => {
+                      const r = results.predictor.prediction.range;
+                      return (
+                        <>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Readiness on quiz-style questions</p>
+                          <p className="font-headline text-3xl font-extrabold text-primary-container mt-1">{r.low}–{r.high}%</p>
+                          <div className="relative h-3 bg-surface-container-highest rounded-full mt-3" aria-hidden="true">
+                            <div className="absolute h-3 rounded-full bg-primary-container/40" style={{ left: `${r.low}%`, width: `${Math.max(2, r.high - r.low)}%` }} />
+                            <div className="absolute top-[-3px] h-[18px] w-1 rounded bg-primary-container" style={{ left: `calc(${r.center}% - 2px)` }} />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-on-surface-variant mt-1"><span>0</span><span>100</span></div>
+                          <p className="text-sm text-on-surface mt-3">Likely band: <strong>{r.gradeLow === r.gradeHigh ? r.gradeLow : `${r.gradeLow} to ${r.gradeHigh}`}</strong></p>
+                          <p className="text-xs text-on-surface-variant mt-2 leading-relaxed">{r.note}</p>
+                        </>
+                      );
+                    })() : (
+                      <p className="text-sm text-on-surface-variant">Complete at least 3 quizzes to see a readiness range.</p>
+                    )}
                   </div>
 
                   {/* Top 3 focus */}

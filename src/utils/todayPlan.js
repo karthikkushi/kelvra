@@ -8,6 +8,7 @@ export const MAX_TASKS = 4;
  * @param {object} s
  * @param {number} s.dueCards        flashcards due for review now
  * @param {number} s.openMistakes    mistakes not yet mastered
+ * @param {number} [s.plotTwistsDue] "Sure but wrong" mistakes due for their next-day replay
  * @param {string} [s.mistakeTopic]  topic with the most open mistakes
  * @param {{topic:string, avg:number}} [s.weakTopic]  lowest-scoring quiz topic
  * @param {string} [s.recentTopic]   last studied topic
@@ -45,8 +46,21 @@ export function buildTodayPlan(s) {
     });
   }
 
-  if (s.openMistakes > 0) {
-    const n = Math.min(s.openMistakes, 10);
+  const twists = Math.min(s.plotTwistsDue || 0, s.openMistakes || 0);
+  if (twists > 0) {
+    tasks.push({
+      id: "twists",
+      icon: "auto_awesome",
+      title: `Replay ${twists} plot twist${twists === 1 ? "" : "s"}`,
+      detail: "Questions you were sure about but got wrong. Fix them while they're fresh.",
+      path: "/mistakes?replay=twists",
+      minutes: Math.max(3, twists * 2),
+    });
+  }
+
+  const otherMistakes = (s.openMistakes || 0) - twists;
+  if (otherMistakes > 0) {
+    const n = Math.min(otherMistakes, 10);
     tasks.push({
       id: "mistakes",
       icon: "assignment_late",

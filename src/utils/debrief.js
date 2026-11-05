@@ -31,7 +31,7 @@ export function topReason(amounts) {
 }
 
 const PARENT_SCRIPT = {
-  en: (test, learned, fix) => [
+  en: (test, learned, fix, guide) => [
     `My ${test} didn't go the way I wanted.`,
     learned ? `What I learned: ${learned}` : null,
     fix ? `My plan for next time: ${fix}` : null,
@@ -40,10 +40,11 @@ const PARENT_SCRIPT = {
     "• Ask me what I learned from it, not just the marks.",
     "• Notice the effort I'm putting in.",
     "• Please don't compare me with others.",
+    guide ? `A 1-minute guide on what helps: ${guide}` : null,
     "",
     "Sent from Kelvra.",
   ],
-  hi: (test, learned, fix) => [
+  hi: (test, learned, fix, guide) => [
     `मेरा ${test} वैसा नहीं गया जैसा मैं चाहता/चाहती था/थी।`,
     learned ? `मैंने क्या सीखा: ${learned}` : null,
     fix ? `अगली बार के लिए मेरी योजना: ${fix}` : null,
@@ -52,13 +53,14 @@ const PARENT_SCRIPT = {
     "• मुझसे पूछें कि मैंने इससे क्या सीखा, सिर्फ़ अंक नहीं।",
     "• मेरी मेहनत पर ध्यान दें।",
     "• कृपया मेरी तुलना दूसरों से न करें।",
+    guide ? `क्या मदद करता है, 1 मिनट में: ${guide}` : null,
     "",
     "Kelvra से भेजा गया।",
   ],
 };
 
-export function parentMessage({ test, learned, fix, lang = "en" }) {
-  return (PARENT_SCRIPT[lang] || PARENT_SCRIPT.en)(test || "test", (learned || "").trim(), (fix || "").trim())
+export function parentMessage({ test, learned, fix, lang = "en", guideUrl = "" }) {
+  return (PARENT_SCRIPT[lang] || PARENT_SCRIPT.en)(test || "test", (learned || "").trim(), (fix || "").trim(), guideUrl)
     .filter((l) => l !== null).join("\n");
 }
 

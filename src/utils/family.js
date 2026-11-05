@@ -30,6 +30,7 @@ const T = {
     scores: (trend) => `📈 Quiz scores are ${trend} this week.`,
     trend: { up: "going up", steady: "steady", down: "a bit lower (working on it)" },
     note: (n) => `💬 A note from me: ${n}`,
+    explainer: (t, url) => `📖 A 1-minute read for you: ${t} ${url}`,
     promptsTitle: "One way to talk about it:",
     footer: "Sent by me from Kelvra. I chose what to share.",
     paused: "",
@@ -45,6 +46,7 @@ const T = {
     scores: (trend) => `📈 इस हफ़्ते क्विज़ के अंक ${trend}।`,
     trend: { up: "बढ़ रहे हैं", steady: "स्थिर हैं", down: "थोड़े कम हैं (मैं इस पर काम कर रहा/रही हूँ)" },
     note: (n) => `💬 मेरी तरफ़ से: ${n}`,
+    explainer: (t, url) => `📖 आपके लिए 1 मिनट की जानकारी: ${t} ${url}`,
     promptsTitle: "बात करने का एक तरीका:",
     footer: "यह मैंने Kelvra से भेजा है। क्या बताना है, यह मैंने चुना।",
   },
@@ -75,8 +77,9 @@ const PROMPTS = {
  * @param {object} share  { days: bool, focus: bool, ... } chosen by the student
  * @param {"en"|"hi"} lang
  * @param {string} note   optional note from the student
+ * @param {{title:{en,hi}, url:string}} [explainer] optional Parent Explainer the student chose to attach
  */
-export function buildFamilyDigest(stats, share, lang = "en", note = "") {
+export function buildFamilyDigest(stats, share, lang = "en", note = "", explainer = null) {
   const t = T[lang] || T.en;
   const p = PROMPTS[lang] || PROMPTS.en;
   const lines = [t.hello(stats.name || "my")];
@@ -88,6 +91,7 @@ export function buildFamilyDigest(stats, share, lang = "en", note = "") {
   if (share.answers && stats.answers?.count) lines.push(t.answers(stats.answers.count, stats.answers.improved));
   if (share.scores && stats.scoreTrend && t.trend[stats.scoreTrend]) lines.push(t.scores(t.trend[stats.scoreTrend]));
   if (note.trim()) lines.push(t.note(note.trim().slice(0, 200)));
+  if (explainer?.url) lines.push(t.explainer(explainer.title?.[lang] || explainer.title?.en || "", explainer.url));
 
   const prompts = [];
   if (share.days && stats.activeDays >= 4) prompts.push(p.steady);

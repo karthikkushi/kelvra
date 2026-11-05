@@ -87,6 +87,7 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
       setInput(({
         dueCards: snap.dueCards,
         openMistakes: snap.openMistakes,
+        plotTwistsDue: snap.plotTwistsDue,
         mistakeTopic: snap.mistakeTopics[0]?.topic,
         weakTopic: weak,
         recentTopic: sessions[0]?.topic,

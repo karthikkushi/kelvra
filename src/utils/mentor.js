@@ -72,6 +72,8 @@ export async function loadMentorContext(user) {
   return {
     name: (meta.full_name || "").split(" ")[0] || "there",
     ageGroup: meta.age_group || null,
+    interests: Array.isArray(meta.interests) ? meta.interests : [],
+    careerGoal: meta.career_goal || null,
     studyType: meta.study_type || null,
     goal: meta.goal || null,
     learningStyle: meta.learning_style || null,
@@ -105,6 +107,8 @@ export function describeStudent(ctx) {
       ? `Age group: ${ctx.ageGroup} (under 18: keep advice age-appropriate; for big decisions encourage talking with parents or teachers)`
       : ctx.ageGroup ? `Age group: ${ctx.ageGroup}` : "Age: not given (treat as under 18)",
     ctx.studyType && `Studies: ${ctx.studyType}`,
+    ctx.interests?.length && `Interests the student chose: ${ctx.interests.join(", ")} (use them for examples)`,
+    ctx.careerGoal && `Career the student is aiming for: ${ctx.careerGoal}`,
     ctx.goal && `Main goal: ${ctx.goal}`,
     ctx.learningStyle && `Learns best by: ${ctx.learningStyle}`,
     ctx.exam && `Exam: ${ctx.exam.name} on ${ctx.exam.date} (${ctx.exam.daysLeft} days left), target ${ctx.exam.dailyMinutes} min/day`,

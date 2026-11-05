@@ -10,7 +10,7 @@ import { auth, db, friendlyAuthError } from "./firebase";
 // Every sub-collection under users/{uid}. Keep in sync when a new kind of data is added.
 export const USER_COLLECTIONS = [
   "study_sessions", "quiz_scores", "mistakes", "cards", "daily", "explorations",
-  "confidence", "focus", "answers", "debriefs", "meta",
+  "confidence", "focus", "answers", "debriefs", "meta", "relevance",
 ];
 
 async function readAll(uid) {
@@ -22,7 +22,9 @@ async function readAll(uid) {
   const profile = await getDoc(doc(db, "users", uid));
   const board = await getDoc(doc(db, "leaderboard", uid));
   const kits = await getDocs(query(collection(db, "shared_kits"), where("user_id", "==", uid)));
+  const votes = await getDocs(query(collection(db, "grid_votes"), where("uid", "==", uid)));
   return {
+    daily_grid_votes: votes.docs.map((d) => ({ id: d.id, ...d.data() })),
     profile: profile.exists() ? profile.data() : null,
     leaderboard: board.exists() ? board.data() : null,
     shared_kits: kits.docs.map((d) => ({ id: d.id, ...d.data() })),
@@ -81,6 +83,8 @@ export async function deleteMyAccount({ password } = {}) {
   }
   const kits = await getDocs(query(collection(db, "shared_kits"), where("user_id", "==", uid)));
   kits.docs.forEach((d) => refs.push(d.ref));
+  const votes = await getDocs(query(collection(db, "grid_votes"), where("uid", "==", uid)));
+  votes.docs.forEach((d) => refs.push(d.ref));   // crowd counts stay: they hold no personal data
   refs.push(doc(db, "leaderboard", uid), doc(db, "users", uid));
 
   for (let i = 0; i < refs.length; i += 400) {

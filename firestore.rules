@@ -4,8 +4,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Any session, including the silent anonymous one used to play the public Daily Grid
     function signedIn() { return request.auth != null; }
-    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+    // A real account (email or Google), not an anonymous Daily Grid session
+    function realUser() { return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+    function isOwner(uid) { return realUser() && request.auth.uid == uid; }
 
     // Each student's profile, study sessions, quiz scores, exam goal, plans and mentor chat:
     // only that student can read or change them.
@@ -20,7 +23,7 @@ service cloud.firestore {
     // your own row. You can only write your own row,
     // XP can only go up, and by at most 50 per save (the biggest single reward is 50).
     match /leaderboard/{uid} {
-      allow read: if signedIn() && (resource.data.public == true || request.auth.uid == uid);
+      allow read: if realUser() && (resource.data.public == true || request.auth.uid == uid);
       allow create: if isOwner(uid)
         && request.resource.data.total_xp is int
         && request.resource.data.total_xp >= 0 && request.resource.data.total_xp <= 50
@@ -39,14 +42,55 @@ service cloud.firestore {
     match /shared_kits/{shareId} {
       allow get: if true;
       // Listing is only allowed for your own kits (for "download my data" and "delete my account")
-      allow list: if signedIn() && resource.data.user_id == request.auth.uid;
-      allow create: if signedIn()
+      allow list: if realUser() && resource.data.user_id == request.auth.uid;
+      allow create: if realUser()
         && shareId.size() >= 12
         && request.resource.data.user_id == request.auth.uid
         && request.resource.data.views == 0;
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views'])
         && request.resource.data.views == resource.data.views + 1;
-      allow delete: if signedIn() && resource.data.user_id == request.auth.uid;
+      allow delete: if realUser() && resource.data.user_id == request.auth.uid;
+    }
+
+    // ── Daily Grid (playable without an account) ──
+    // One vote per player per puzzle. Its id is "{puzzle}_{uid}", so a second vote is an update
+    // and is refused. Players can read only their own votes.
+    match /grid_votes/{voteId} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.puzzle is string
+        && request.resource.data.puzzle.size() <= 40
+        && voteId == request.resource.data.puzzle + '_' + request.auth.uid
+        && request.resource.data.answers is list
+        && request.resource.data.answers.size() == 5;
+      allow delete: if realUser() && resource.data.uid == request.auth.uid;
+    }
+
+    // Public crowd counts per question ("{puzzle}_q{i}"): A, B, C, D and total.
+    // A count can only change in the same batch that creates the player's vote for that puzzle,
+    // and only by +1 on one option and +1 on total.
+    function votingNow(statId) {
+      let voteId = statId.split('_q')[0] + '_' + request.auth.uid;
+      return existsAfter(/databases/$(database)/documents/grid_votes/$(voteId))
+        && !exists(/databases/$(database)/documents/grid_votes/$(voteId));
+    }
+    function optionSum(d) {
+      return d.get('A', 0) + d.get('B', 0) + d.get('C', 0) + d.get('D', 0);
+    }
+    match /grid_stats/{statId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && votingNow(statId)
+        && request.resource.data.keys().hasOnly(['A', 'B', 'C', 'D', 'total'])
+        && request.resource.data.total == 1
+        && optionSum(request.resource.data) == 1;
+      allow update: if signedIn()
+        && votingNow(statId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['A', 'B', 'C', 'D', 'total'])
+        && request.resource.data.diff(resource.data).affectedKeys().size() == 2
+        && request.resource.data.total == resource.data.total + 1
+        && optionSum(request.resource.data) == request.resource.data.total;
     }
   }
 }

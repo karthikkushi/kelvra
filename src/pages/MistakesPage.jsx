@@ -1,13 +1,14 @@
 // src/pages/MistakesPage.jsx
 // Mistake notebook: every wrong quiz answer, grouped by topic, with a retest mode.
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { getMistakes, markMistake, deleteMistake, getConfidenceRecords } from "../utils/learning";
 import { calibrationSummary, LEVELS } from "../utils/confidence";
 import { findMistakePatterns } from "../utils/mentor";
 import { getMeta, setMeta } from "../utils/firebase";
 import { awardXP } from "../utils/gamification";
+import { twistsDue, twistsFixedThisWeek } from "../utils/plotTwist";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
 
@@ -90,6 +91,8 @@ function Retest({ items, user, onDone }) {
 }
 
 export default function MistakesPage({ user }) {
+  const [params] = useSearchParams();
+  const replayParam = params.get("replay");
   const navigate = useNavigate();
   const [items, setItems] = useState(null);
   const [filter, setFilter] = useState("open");
@@ -105,11 +108,19 @@ export default function MistakesPage({ user }) {
   useEffect(() => {
     if (!user?.id) return;
     let alive = true;
-    getMistakes(user.id).then((list) => { if (alive) setItems(list); });
+    getMistakes(user.id).then((list) => {
+      if (!alive) return;
+      setItems(list);
+      // Opened from today's plan ("Replay N plot twists"): start with the plot twists that are due
+      if (replayParam === "twists") {
+        const due = twistsDue(list);
+        if (due.length) setRetest(due.slice(0, 10));
+      }
+    });
     getConfidenceRecords(user.id).then((recs) => { if (alive) setCalibration(calibrationSummary(recs)); });
     getMeta(user.id, "mistake_patterns").then((p) => { if (alive && p?.patterns) setPatterns(p); });
     return () => { alive = false; };
-  }, [user?.id]);
+  }, [user?.id, replayParam]);
 
   // "Sure but wrong" first: those are the most valuable to fix
   const byPriority = (a, b) => Number(!!b.confident) - Number(!!a.confident);
@@ -207,6 +218,13 @@ export default function MistakesPage({ user }) {
                     <p className="text-sm text-on-surface-variant">Kelvra can look across your mistakes and find the 2-3 habits that cost you the most marks.</p>
                   )}
                 </section>
+              )}
+
+              {twistsFixedThisWeek(items) > 0 && (
+                <div className="mb-5 flex items-center gap-3 px-4 py-3 rounded-2xl bg-secondary-container/15 border border-secondary/25">
+                  <span className="material-symbols-outlined text-secondary" style={filled}>auto_awesome</span>
+                  <p className="text-sm text-on-surface"><strong>{twistsFixedThisWeek(items)} plot twist{twistsFixedThisWeek(items) === 1 ? "" : "s"} fixed this week.</strong> Questions you were sure about, now actually right.</p>
+                </div>
               )}
 
               {calibration?.enough && (
