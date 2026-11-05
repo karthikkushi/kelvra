@@ -109,8 +109,9 @@ export default function SettingsPage({ user }) {
               <span className="material-symbols-outlined text-secondary">school</span>
               Learning Preferences
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
+                { label: "Age group",       value: user?.user_metadata?.age_group ? `${user.user_metadata.age_group.replace("-", "–")}${["13-15", "16-17"].includes(user.user_metadata.age_group) ? " (under-18 safety on)" : ""}` : "Not set (under-18 safety on)" },
                 { label: "Study Type",      value: user?.user_metadata?.study_type     || "Not set" },
                 { label: "Goal",            value: user?.user_metadata?.goal           || "Not set" },
                 { label: "Learning Style",  value: user?.user_metadata?.learning_style || "Not set" },

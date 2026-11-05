@@ -38,6 +38,17 @@ npm run build       # production build into dist/
     ([`src/utils/todayPlan.js`](src/utils/todayPlan.js), no AI needed), plus a mood / minutes / note check-in.
   - **Career & project explorer** (`/explore`): real-world uses, jobs, a hands-on project and interview questions for any topic.
   - The mentor reads all of it (mistakes, due cards, recent check-ins) before answering.
+- **Behaviour features** (based on the research report in [`reports/`](reports/)):
+  - **Answer-writing coach** (`/answer`): write or speak a full exam answer; feedback on 5 rubric points shown as bands, a marks
+    *range*, one biggest fix, a required rewrite, and the model answer only after trying ([`src/utils/answerCoach.js`](src/utils/answerCoach.js)).
+  - **Confidence check** (Quiz): Guess / Unsure / Sure before seeing the answer; "sure but wrong" goes to the top of the
+    Mistake notebook; "how sure vs how right" card ([`src/utils/confidence.js`](src/utils/confidence.js)).
+  - **Focus tracker** (`/focus`): notices leaving the tab, one-tap reason, 10-second reflection, private weekly focus summary
+    ([`src/utils/focus.js`](src/utils/focus.js)).
+  - **Habit coach** (`/habits`): patterns from real activity (days studied, late nights, cramming) and one if-then experiment a
+    week, counted as "X of 7 days", never a streak ([`src/utils/habits.js`](src/utils/habits.js)).
+- **Safety:** messages that sound like self-harm are not sent to the AI or saved; the student sees Tele-MANAS 14416 instead
+  ([`src/utils/safety.js`](src/utils/safety.js)). Onboarding asks only an age group; unknown age is treated as under 18.
 
 ## Set up Firebase (once)
 
@@ -58,4 +69,8 @@ The free Spark plan is enough to start and, unlike Supabase's free tier, does no
 
 - Data from the old Supabase project was not copied over (that project is paused). New accounts start empty.
 - Photo and handwriting reading uses a Groq preview model, which Groq may retire at short notice.
-- Tests cover the AI server function, the spaced-repetition and today-plan logic, and the database security rules; not the pages.
+- Tests cover the AI server function, the learning/behaviour logic (scheduler, today plan, confidence, focus, habits, answer
+  scoring, crisis detection) and the database security rules; not the pages.
+- Before May 2027 (DPDP Act children's rules): verifiable parental consent for under-18s and a lawyer's view on whether
+  adaptive learning counts as "behavioural monitoring". See the research report.
+- The leaderboard ranks students by XP, which the research flags as a pressure risk; consider removing or making it opt-in.

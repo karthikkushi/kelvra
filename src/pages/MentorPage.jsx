@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { loadMentorContext, askMentor, suggestWeeklyGoals, saveMentorState } from "../utils/mentor";
+import { detectCrisis } from "../utils/safety";
+import CrisisCard from "../components/CrisisCard";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
 
@@ -195,6 +197,7 @@ export default function MentorPage({ user }) {
   const [error, setError] = useState("");
   const [tab, setTab] = useState("chat"); // phones only: "chat" | "goals"
   const [pendingPrompt, setPendingPrompt] = useState(null);
+  const [crisis, setCrisis] = useState(false);
   const endRef = useRef(null);
   const loaded = useRef(false);
 
@@ -231,6 +234,12 @@ export default function MentorPage({ user }) {
     if (!content || thinking || !ctx) return;
     setError("");
     setInput("");
+    // Sounds like self-harm: do not send to the AI, do not save, show real help instead
+    if (detectCrisis(content)) {
+      setCrisis(true);
+      setTab("chat");
+      return;
+    }
     setTab("chat");
     const next = [...messages, { role: "user", content, at: new Date().toISOString() }];
     setMessages(next);
@@ -279,7 +288,7 @@ export default function MentorPage({ user }) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 lg:pt-10">
           <header className="flex items-start justify-between gap-4 mb-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-primary-container mb-1">Your mentor</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-primary-container mb-1">Your AI mentor · not a person</p>
               <h1 className="font-headline text-2xl sm:text-3xl font-extrabold tracking-tighter">Hi {ctx.name}, what's on your mind?</h1>
               <p className="text-sm text-on-surface-variant mt-1 max-w-xl">
                 A mentor that knows your scores, your exam date and your goals. Ask about study plans, real-world uses of a topic, careers, or when you feel stuck.
@@ -361,6 +370,10 @@ export default function MentorPage({ user }) {
                     </button>
                   ))}
                 </div>
+              )}
+
+              {crisis && (
+                <div className="mx-4 sm:mx-6 mb-3"><CrisisCard onClose={() => setCrisis(false)} /></div>
               )}
 
               {error && (

@@ -6,6 +6,12 @@ import { groqFetch, aiErrorMessage } from "./claudeAPI";
 import { listRecent, getMeta, setMeta } from "./firebase";
 import { getLearningSnapshot } from "./learning";
 import { MOODS } from "./todayPlan";
+import { SAFETY_RULES } from "./safety";
+import { localDateKey } from "./hash";
+import { getConfidenceRecords, getFocusSessions, getActivityEvents } from "./learning";
+import { calibrationSummary } from "./confidence";
+import { summarizeFocus } from "./focus";
+import { buildBehaviourReport, ifThenSentence, experimentProgress } from "./habits";
 
 const MAX_SAVED_MESSAGES = 40;   // kept in the database
 const MAX_SENT_MESSAGES = 12;    // sent to the AI each turn (keeps requests small)
@@ -14,7 +20,7 @@ const MAX_SENT_MESSAGES = 12;    // sent to the AI each turn (keeps requests sma
 export function weekStart(date = new Date()) {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
-  return d.toISOString().split("T")[0];
+  return localDateKey(d); // local date, so the week flips at the student's own midnight
 }
 
 export function calcStreak(sessions) {
@@ -48,18 +54,24 @@ export function daysUntil(dateStr) {
 // Everything the mentor needs to know, loaded in one go. Works offline from the local cache.
 export async function loadMentorContext(user) {
   const uid = user?.id;
-  const [scores, sessions, exam, state, learning] = await Promise.all([
+  const [scores, sessions, exam, state, learning, confidence, focus, events, habit] = await Promise.all([
     listRecent(uid, "quiz_scores", { max: 60 }).catch(() => []),
     listRecent(uid, "study_sessions", { max: 40 }).catch(() => []),
     getMeta(uid, "exam_goal"),
     getMeta(uid, "mentor"),
     getLearningSnapshot(uid).catch(() => ({ dueCards: 0, openMistakes: 0, mistakeTopics: [], checkins: [] })),
+    getConfidenceRecords(uid, 150),
+    getFocusSessions(uid, 40),
+    getActivityEvents(uid).catch(() => []),
+    getMeta(uid, "habit"),
   ]);
+  const behaviour = buildBehaviourReport(events);
   const averages = topicAverages(scores);
   const meta = user?.user_metadata || {};
   const thisWeek = weekStart();
   return {
     name: (meta.full_name || "").split(" ")[0] || "there",
+    ageGroup: meta.age_group || null,
     studyType: meta.study_type || null,
     goal: meta.goal || null,
     learningStyle: meta.learning_style || null,
@@ -71,6 +83,10 @@ export async function loadMentorContext(user) {
     weakTopics: averages.filter((t) => t.avg < 70).slice(0, 4),
     strongTopics: averages.filter((t) => t.avg >= 85).slice(-3).reverse(),
     recentTopics: [...new Set(sessions.map((s) => s.topic))].slice(0, 5),
+    calibration: calibrationSummary(confidence),
+    focus: summarizeFocus(focus),
+    behaviour: { activeDays: behaviour.activeDays, patterns: behaviour.patterns.map((p) => p.title) },
+    habit: habit?.current && habit.current.week_start === weekStart() ? { sentence: ifThenSentence(habit.current), ...experimentProgress(habit.current) } : null,
     dueCards: learning.dueCards,
     openMistakes: learning.openMistakes,
     mistakeTopics: learning.mistakeTopics.slice(0, 3),
@@ -85,6 +101,9 @@ export async function loadMentorContext(user) {
 export function describeStudent(ctx) {
   const lines = [
     `Name: ${ctx.name}`,
+    ctx.ageGroup && !isAdult(ctx.ageGroup)
+      ? `Age group: ${ctx.ageGroup} (under 18: keep advice age-appropriate; for big decisions encourage talking with parents or teachers)`
+      : ctx.ageGroup ? `Age group: ${ctx.ageGroup}` : "Age: not given (treat as under 18)",
     ctx.studyType && `Studies: ${ctx.studyType}`,
     ctx.goal && `Main goal: ${ctx.goal}`,
     ctx.learningStyle && `Learns best by: ${ctx.learningStyle}`,
@@ -94,6 +113,10 @@ export function describeStudent(ctx) {
     ctx.weakTopics.length && `Weak topics (avg score): ${ctx.weakTopics.map((t) => `${t.topic} ${t.avg}%`).join(", ")}`,
     ctx.strongTopics.length && `Strong topics: ${ctx.strongTopics.map((t) => `${t.topic} ${t.avg}%`).join(", ")}`,
     ctx.recentTopics.length && `Recently studied: ${ctx.recentTopics.join(", ")}`,
+    ctx.behaviour && `Study days in last 7: ${ctx.behaviour.activeDays}${ctx.behaviour.patterns.length ? `; patterns: ${ctx.behaviour.patterns.join("; ")}` : ""}`,
+    ctx.habit && `This week's if-then habit: "${ctx.habit.sentence}" (done ${ctx.habit.doneThisWeek} of ${ctx.habit.daysSoFar} days)`,
+    ctx.focus?.count && `Focus this week: ${ctx.focus.count} sessions, ${ctx.focus.minutes} min, avg focus ${ctx.focus.avgRating ?? "?"}/5${ctx.focus.topDistraction ? `, top distraction: ${ctx.focus.topDistraction.label}` : ""}`,
+    ctx.calibration?.enough && `Confidence check: Sure answers ${ctx.calibration.levels.sure.correct}/${ctx.calibration.levels.sure.count} right, Unsure ${ctx.calibration.levels.unsure.correct}/${ctx.calibration.levels.unsure.count}${ctx.calibration.sureWrongTopics.length ? `; sure-but-wrong most in ${ctx.calibration.sureWrongTopics[0].topic}` : ""}`,
     ctx.openMistakes && `Open mistakes in notebook: ${ctx.openMistakes} (most in ${ctx.mistakeTopics.map((t) => `${t.topic} x${t.count}`).join(", ")})`,
     ctx.dueCards && `Flashcards due for review now: ${ctx.dueCards}`,
     ctx.checkins?.length && `Recent daily check-ins: ${ctx.checkins.map((c) => `${c.date}: ${MOODS.find((m) => m.id === c.checkin.mood)?.label || "?"} mood, ${c.checkin.minutes || 0} min${c.checkin.note ? `, "${c.checkin.note}"` : ""}`).join("; ")}`,
@@ -103,6 +126,8 @@ export function describeStudent(ctx) {
   return lines.filter(Boolean).join("\n");
 }
 
+export const isAdult = (ageGroup) => ageGroup === "18-21" || ageGroup === "22+";
+
 const MENTOR_RULES = `You are Kelvra Mentor: a warm, honest, experienced mentor for a student. You are like a senior who has been through it and now guides others.
 
 How you help:
@@ -111,12 +136,15 @@ How you help:
 - Give practical next steps they can do today (at most 3), sized to their time left before the exam.
 - Be honest. If they are behind, say so kindly and give a recovery plan. Do not flatter.
 - Do not invent statistics, salaries, exam dates, cut-offs, names of institutions or links. If unsure, say so and suggest how to find out.
-- You can suggest Kelvra tools when useful: Study (make flashcards/quiz from notes), Review (due flashcards), Mistakes (retest wrong answers), Explore (careers and projects for a topic), AI Tutor (Socratic questions), Focus timer.
+- You can suggest Kelvra tools when useful: Study (make flashcards/quiz from notes), Review (due flashcards), Mistakes (retest wrong answers), Answer coach (practise full written/spoken exam answers), Habits (one if-then experiment a week), Focus timer, Explore (careers and projects for a topic), AI Tutor (Socratic questions).
+- Coach behaviour, not just knowledge: notice patterns (late nights, cramming, distractions, "sure but wrong" answers) and suggest ONE small, specific change. Praise effort and strategy, never intelligence.
 - If recent check-ins show low mood or very little study, notice it kindly and adjust the plan to something small and doable.
 - If the student mentions self-harm, abuse or a crisis, respond with care and encourage them to talk to a trusted adult, a counsellor, or a local emergency/helpline number right away.
 - Reply in the language the student writes in.
 
-Style: under 170 words. Short paragraphs or "- " bullets. Use **bold** for key words. End with one short question that helps them reflect or commit to an action.`;
+Style: under 170 words. Short paragraphs or "- " bullets. Use **bold** for key words. End with one short question that helps them reflect or commit to an action.
+
+${SAFETY_RULES}`;
 
 async function chat(messages, { maxTokens = 600, temperature = 0.6 } = {}) {
   const response = await groqFetch({ messages, temperature, max_tokens: maxTokens });

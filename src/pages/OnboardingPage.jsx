@@ -22,6 +22,16 @@ const STEPS = [
     ],
   },
   {
+    label: "How old are you?",
+    note: "We only keep your age group. Under 18, Kelvra uses extra safety settings.",
+    options: [
+      { icon: "child_care",       title: "13–15", value: "13-15", desc: "School, classes 8 to 10." },
+      { icon: "school",           title: "16–17", value: "16-17", desc: "Classes 11 and 12, entrance exam prep." },
+      { icon: "person",           title: "18–21", value: "18-21", desc: "College or drop year." },
+      { icon: "badge",            title: "22 or older", value: "22+", desc: "Graduate, competitive exams, working." },
+    ],
+  },
+  {
     label: "How do you learn best?",
     options: [
       { icon: "visibility",       title: "Visual",                desc: "Charts, diagrams, and images." },
@@ -35,7 +45,7 @@ const STEPS = [
 export default function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  const [selected, setSelected] = useState([null, null, null]);
+  const [selected, setSelected] = useState(STEPS.map(() => null));
   const [saving, setSaving] = useState(false);
 
   const pick = (i) => {
@@ -45,7 +55,7 @@ export default function OnboardingPage() {
   };
 
   const next = async () => {
-    if (step < 2) {
+    if (step < STEPS.length - 1) {
       setStep(step + 1);
     } else {
       // Save preferences and navigate to dashboard
@@ -53,8 +63,10 @@ export default function OnboardingPage() {
       try {
         const studyType     = STEPS[0].options[selected[0] ?? 0].title;
         const goal          = STEPS[1].options[selected[1] ?? 0].title;
-        const learningStyle = STEPS[2].options[selected[2] ?? 0].title;
-        await saveOnboardingPrefs(studyType, goal, learningStyle);
+        const learningStyle = STEPS[3].options[selected[3] ?? 0].title;
+        // No answer = treated as under 18 (safer default)
+        const ageGroup      = selected[2] == null ? null : STEPS[2].options[selected[2]].value;
+        await saveOnboardingPrefs(studyType, goal, learningStyle, ageGroup);
       } catch {
         // Never block navigation — prefs save is best-effort
       } finally {
@@ -103,7 +115,7 @@ export default function OnboardingPage() {
 
           {/* Progress bars */}
           <div className="flex gap-4 items-center mt-8">
-            {[0, 1, 2].map((i) => (
+            {STEPS.map((_, i) => (
               <div key={i} className={`h-1.5 w-12 rounded-full transition-all duration-500 ${
                 i <= step
                   ? "bg-primary-container shadow-[0_0_12px_2px_rgba(110,231,183,0.4)]"
@@ -120,11 +132,12 @@ export default function OnboardingPage() {
           <div>
             <header className="mb-10">
               <span className="font-label text-xs uppercase tracking-[0.2em] text-primary-container font-bold mb-2 block">
-                Step {step + 1} of 3
+                Step {step + 1} of {STEPS.length}
               </span>
               <h2 className="font-headline text-2xl font-bold text-on-surface">
                 {STEPS[step].label}
               </h2>
+              {STEPS[step].note && <p className="text-xs text-on-surface-variant mt-2">{STEPS[step].note}</p>}
             </header>
 
             {/* Option cards grid */}
@@ -171,11 +184,11 @@ export default function OnboardingPage() {
               disabled={saving}
               className="group flex items-center gap-3 bg-primary-container hover:bg-primary px-8 py-4 rounded-full transition-all duration-300 active:scale-95 shadow-lg shadow-primary-container/20 disabled:opacity-70">
               <span className="font-headline font-bold text-on-primary-container uppercase tracking-widest text-sm">
-                {saving ? "Saving…" : step === 2 ? "Start Learning" : "Next"}
+                {saving ? "Saving…" : step === STEPS.length - 1 ? "Start Learning" : "Next"}
               </span>
               {!saving && (
                 <span className="material-symbols-outlined text-on-primary-container group-hover:translate-x-1 transition-transform">
-                  {step === 2 ? "rocket_launch" : "arrow_forward"}
+                  {step === STEPS.length - 1 ? "rocket_launch" : "arrow_forward"}
                 </span>
               )}
             </button>

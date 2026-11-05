@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import { getMistakes, markMistake, deleteMistake } from "../utils/learning";
+import { getMistakes, markMistake, deleteMistake, getConfidenceRecords } from "../utils/learning";
+import { calibrationSummary, LEVELS } from "../utils/confidence";
 import { awardXP } from "../utils/gamification";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
@@ -93,25 +94,31 @@ export default function MistakesPage({ user }) {
   const [topic, setTopic] = useState("all");
   const [retest, setRetest] = useState(null);
   const [result, setResult] = useState(null);
+  const [calibration, setCalibration] = useState(null);
 
   const load = () => getMistakes(user.id).then(setItems);
   useEffect(() => {
     if (!user?.id) return;
     let alive = true;
     getMistakes(user.id).then((list) => { if (alive) setItems(list); });
+    getConfidenceRecords(user.id).then((recs) => { if (alive) setCalibration(calibrationSummary(recs)); });
     return () => { alive = false; };
   }, [user?.id]);
 
-  const open = (items || []).filter((m) => !m.mastered);
+  // "Sure but wrong" first: those are the most valuable to fix
+  const byPriority = (a, b) => Number(!!b.confident) - Number(!!a.confident);
+  const open = (items || []).filter((m) => !m.mastered).sort(byPriority);
   const topics = Object.entries(open.reduce((acc, m) => { acc[m.topic] = (acc[m.topic] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]);
   const shown = (items || [])
     .filter((m) => (filter === "open" ? !m.mastered : filter === "mastered" ? m.mastered : true))
-    .filter((m) => topic === "all" || m.topic === topic);
+    .filter((m) => topic === "all" || m.topic === topic)
+    .sort(byPriority);
 
   const startRetest = () => {
     const pool = open.filter((m) => topic === "all" || m.topic === topic);
     setResult(null);
-    setRetest(shuffle(pool).slice(0, 10));
+    // Confident mistakes first, the rest shuffled
+    setRetest([...pool.filter((m) => m.confident), ...shuffle(pool.filter((m) => !m.confident))].slice(0, 10));
   };
 
   const finishRetest = (fixed) => {
@@ -152,6 +159,21 @@ export default function MistakesPage({ user }) {
             </div>
           ) : (
             <>
+              {calibration?.enough && (
+                <section className="mb-5 bg-surface-container-low border border-outline-variant/10 rounded-2xl p-5">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-3">How sure vs how right (last {calibration.total} answers)</p>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {LEVELS.map((l) => (
+                      <div key={l.id} className="bg-surface-container rounded-xl p-3 text-center">
+                        <p className="font-headline text-xl font-bold">{calibration.levels[l.id].pct == null ? "—" : `${calibration.levels[l.id].pct}%`}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">{l.label} · {calibration.levels[l.id].correct}/{calibration.levels[l.id].count}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {calibration.tips.map((t) => <p key={t} className="text-sm text-on-surface-variant mb-1">• {t}</p>)}
+                </section>
+              )}
+
               {result && (
                 <div role="status" className="mb-5 px-4 py-3 rounded-xl bg-primary-container/10 border border-primary-container/20 text-sm">
                   You fixed <strong>{result.fixed}</strong> of {result.total}. {result.fixed === result.total ? "Clean sweep! 🎉" : "The rest stay here for next time."}
@@ -197,6 +219,9 @@ export default function MistakesPage({ user }) {
                         <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-1">
                           {m.topic} · missed {m.wrong_count || 1}×{m.mastered ? " · mastered" : ""}
                         </p>
+                        {m.confident && !m.mastered && (
+                          <span className="inline-block mb-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary-container/30 text-secondary">You were sure · fix first</span>
+                        )}
                         <p className="font-bold text-on-surface">{m.question}</p>
                       </div>
                       <button onClick={() => remove(m)} aria-label="Remove" className="text-on-surface-variant hover:text-error flex-shrink-0">

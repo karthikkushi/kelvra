@@ -12,6 +12,8 @@ const LINKS = [
   { id: "flashcards",  icon: "style",       label: "Flashcards",  path: "/flashcards" },
   { id: "quiz",        icon: "quiz",        label: "Quiz",        path: "/quiz" },
   { id: "mistakes",    icon: "assignment_late", label: "Mistakes", path: "/mistakes" },
+  { id: "answer",      icon: "edit_note",   label: "Answer coach", path: "/answer" },
+  { id: "habits",      icon: "self_improvement", label: "Habits", path: "/habits" },
   { id: "mentor",      icon: "diversity_3", label: "Mentor",      path: "/mentor" },
   { id: "explore",     icon: "explore",     label: "Explore",     path: "/explore" },
   { id: "agents",      icon: "smart_toy",   label: "AI Agents",   path: "/agents" },
@@ -114,7 +116,7 @@ export default function Sidebar({ active = "dashboard", mobileNav = true }) {
               }`}>
               <span className="material-symbols-outlined" style={active === l.id ? filled : {}}>{l.icon}</span>
               {l.label}
-              {["review", "mistakes", "explore"].includes(l.id) && (
+              {["answer", "habits"].includes(l.id) && (
                 <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-container/15 text-primary-container">New</span>
               )}
             </button>

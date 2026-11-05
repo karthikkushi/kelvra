@@ -242,8 +242,8 @@ export async function updateUserProfile(fields) {
   return { data: null, error: null };
 }
 
-export async function saveOnboardingPrefs(studyType, goal, learningStyle) {
-  return updateUserProfile({ study_type: studyType, goal, learning_style: learningStyle, onboarding_done: true });
+export async function saveOnboardingPrefs(studyType, goal, learningStyle, ageGroup = null) {
+  return updateUserProfile({ study_type: studyType, goal, learning_style: learningStyle, age_group: ageGroup, onboarding_done: true });
 }
 
 // ── Study data ──

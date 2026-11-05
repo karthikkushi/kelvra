@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { saveQuizScore } from "../utils/firebase";
 import { awardXP } from "../utils/gamification";
-import { saveMistake } from "../utils/learning";
+import { saveMistake, saveConfidence } from "../utils/learning";
+import { LEVELS, calibrationSummary } from "../utils/confidence";
+import { getHint } from "../utils/claudeAPI";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const QUESTIONS = [
@@ -145,21 +147,48 @@ export default function QuizPage({ user }) {
     Hard:   "bg-error-container/30 text-error border-error/20",
   };
 
-  const answer = (id) => {
+  // Confidence check: pick an option, then say how sure you are, then see if it is right.
+  const [pending, setPending] = useState(null);
+  const [confidences, setConfidences] = useState({});
+  const [hintLoading, setHintLoading] = useState(false);
+
+  const pick = (id) => {
     if (answered) return;
+    setPending(id);
+  };
+
+  const askHint = async () => {
+    if (hintLoading) return;
+    setHintLoading(true);
+    try {
+      setBuddyMsg(await getHint(q.question, topicOf(q)));
+    } catch (err) {
+      setBuddyMsg(err.message || "Could not get a hint right now.");
+    } finally {
+      setHintLoading(false);
+    }
+  };
+
+  const answer = (id, confidence) => {
+    if (answered) return;
+    setPending(null);
     setAnswers({ ...answers, [qIndex]: id });
+    setConfidences({ ...confidences, [qIndex]: confidence });
+    if (user?.id && !isSample) saveConfidence(user.id, { topic: topicOf(q), confidence, correct: id === q.correct });
     setShowExplanation(true);
     if (voiceOn) {
       const prefix = id === q.correct ? "Correct!" : "Not quite.";
       setTimeout(() => speak(prefix + " " + q.explanation), 500);
     }
     if (id === q.correct) {
-      setBuddyMsg("Great job! You're on fire 🔥");
+      setBuddyMsg(confidence === "guess" ? "Right! Was it really a guess? Revise it once and it becomes a sure mark." : "Great job! You're on fire 🔥");
       setDiffIndex(Math.min(diffIndex + 1, 2));
     } else {
-      setBuddyMsg("Not quite — saved to your Mistake notebook 📖");
+      setBuddyMsg(confidence === "sure"
+        ? "You were sure, but this one is wrong. These are the best mistakes to fix: read the explanation slowly. Added to the top of your notebook."
+        : "Not quite — saved to your Mistake notebook 📖");
       if (user?.id && !isSample) {
-        saveMistake(user.id, { question: q.question, options: q.options, correct: q.correct, chosen: id, explanation: q.explanation, topic: topicOf(q) });
+        saveMistake(user.id, { question: q.question, options: q.options, correct: q.correct, chosen: id, explanation: q.explanation, topic: topicOf(q), confidence });
       }
       setDiffIndex(Math.max(diffIndex - 1, 0));
     }
@@ -187,6 +216,7 @@ export default function QuizPage({ user }) {
   };
 
   const getOptionStyle = (id) => {
+    if (!answered && pending === id) return "bg-secondary-container/20 border-2 border-secondary/60 cursor-pointer";
     if (!answered) return "bg-surface-container-low border border-outline-variant/10 hover:bg-surface-container-highest hover:border-primary-container/40 hover:translate-y-[-2px] cursor-pointer";
     if (id === q.correct) return "bg-primary-container/10 border-2 border-primary-container/60";
     if (id === answers[qIndex] && id !== q.correct) return "bg-error-container/10 border-2 border-error/40";
@@ -228,6 +258,24 @@ export default function QuizPage({ user }) {
                 </div>
               ))}
             </div>
+            {(() => {
+              const cal = calibrationSummary(Object.entries(confidences).map(([i, c]) => ({ confidence: c, correct: answers[i] === questions[Number(i)].correct })));
+              const rows = LEVELS.filter((l) => cal.levels[l.id].count > 0);
+              if (!rows.length) return null;
+              return (
+                <div className="mb-6 text-left bg-surface-container-highest/30 rounded-xl p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-2">How sure vs how right</p>
+                  {rows.map((l) => (
+                    <p key={l.id} className="text-sm text-on-surface-variant">
+                      <strong className="text-on-surface">{l.label}:</strong> {cal.levels[l.id].correct} of {cal.levels[l.id].count} right
+                    </p>
+                  ))}
+                  {cal.levels.sure.count > cal.levels.sure.correct && (
+                    <p className="text-xs text-secondary mt-2">Your "sure but wrong" answers are at the top of your Mistake notebook. Fix those first.</p>
+                  )}
+                </div>
+              );
+            })()}
             {isSample && (
               <p className="text-xs text-on-surface-variant mb-4">
                 This was the sample quiz, so it was not saved. Make a quiz from your own notes on the Study page.
@@ -339,7 +387,7 @@ export default function QuizPage({ user }) {
           {/* Options — single column on mobile, 2-col on md+ */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
             {q.options.map((opt) => (
-              <button key={opt.id} onClick={() => answer(opt.id)}
+              <button key={opt.id} onClick={() => pick(opt.id)} aria-pressed={pending === opt.id}
                 className={`group p-5 sm:p-6 rounded-2xl flex items-center gap-4 text-left transition-all min-h-[64px] ${getOptionStyle(opt.id)}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold font-headline flex-shrink-0 transition-all ${getLetterStyle(opt.id)}`}>
                   {opt.id}
@@ -355,13 +403,29 @@ export default function QuizPage({ user }) {
             ))}
           </div>
 
+          {/* Confidence check */}
+          {pending && !answered && (
+            <div className="w-full bg-surface-container-low border border-secondary/30 rounded-2xl p-4 sm:p-5" role="group" aria-label="How sure are you?">
+              <p className="text-sm font-bold text-on-surface mb-3">How sure are you about <span className="text-secondary">{pending}</span>?</p>
+              <div className="grid grid-cols-3 gap-2">
+                {LEVELS.map((l) => (
+                  <button key={l.id} onClick={() => answer(pending, l.id)}
+                    className="py-3 rounded-xl bg-surface-container border border-outline-variant/20 hover:border-secondary/60 text-sm font-bold text-on-surface flex flex-col items-center gap-1">
+                    <span className="material-symbols-outlined text-secondary">{l.icon}</span>{l.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-on-surface-variant mt-2">Be honest. Knowing what you really know is a skill top students train.</p>
+            </div>
+          )}
+
           {/* Bottom actions */}
           <div className="flex flex-wrap w-full items-center justify-between gap-3 pt-2">
             <button
-              onClick={() => setBuddyMsg("Here's a hint: think about what makes this concept unique compared to similar ones.")}
+              onClick={askHint} disabled={answered || hintLoading}
               className="flex items-center gap-2 px-4 sm:px-6 py-3 rounded-full border border-outline-variant/20 text-on-surface-variant hover:text-primary-fixed hover:border-primary-fixed/40 transition-all font-bold text-xs uppercase tracking-widest">
               <span className="material-symbols-outlined text-sm">lightbulb</span>
-              Ask AI for a hint
+              {hintLoading ? "Thinking…" : "Ask AI for a hint"}
             </button>
             {answered && (
               <button onClick={next}

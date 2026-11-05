@@ -7,6 +7,8 @@ import {
   getSocraticReveal,
 } from "../utils/claudeAPI";
 import { awardXP } from "../utils/gamification";
+import { detectCrisis } from "../utils/safety";
+import CrisisCard from "../components/CrisisCard";
 
 const SUGGESTED_TOPICS = [
   "Photosynthesis",
@@ -31,6 +33,7 @@ export default function SocraticPage({ user }) {
   const [reveal, setReveal] = useState("");
   const [revealLoading, setRevealLoading] = useState(false);
   const [turnCount, setTurnCount] = useState(0);
+  const [crisis, setCrisis] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -42,6 +45,7 @@ export default function SocraticPage({ user }) {
   const startSession = async (t) => {
     const topicToUse = t || inputTopic.trim();
     if (!topicToUse) return;
+    if (detectCrisis(topicToUse)) { setInputTopic(""); setCrisis(true); return; }
     setTopic(topicToUse);
     setMessages([]);
     setReveal("");
@@ -64,6 +68,8 @@ export default function SocraticPage({ user }) {
     if (!userInput.trim() || loading) return;
     const userMsg = userInput.trim();
     setUserInput("");
+    // Sounds like self-harm: not sent to the AI, not shown in the chat; show real help instead
+    if (detectCrisis(userMsg)) { setCrisis(true); return; }
     const newMessages = [...messages.filter((m) => m.role !== "error"), { role: "user", content: userMsg, timestamp: new Date() }];
     setMessages(newMessages);
     setLoading(true);
@@ -107,6 +113,11 @@ export default function SocraticPage({ user }) {
     <div className="min-h-screen bg-background text-on-surface font-body">
       <Sidebar active="socratic" mobileNav={!sessionActive} />
       <main className="md:ml-64 min-h-screen flex flex-col">
+        {crisis && (
+          <div className="fixed inset-0 z-[70] bg-black/60 flex items-center justify-center p-4">
+            <div className="max-w-lg w-full"><CrisisCard onClose={() => setCrisis(false)} /></div>
+          </div>
+        )}
 
         {!sessionActive ? (
           /* ── TOPIC SELECTION ── */

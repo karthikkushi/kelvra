@@ -5,7 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { buildTodayPlan, MOODS } from "../utils/todayPlan";
 import { getLearningSnapshot, getDay, saveDay } from "../utils/learning";
 import { getMeta } from "../utils/firebase";
+import { ifThenSentence, experimentProgress } from "../utils/habits";
+import { weekStart } from "../utils/mentor";
 import { topicAverages, daysUntil } from "../utils/mentor";
+import { detectCrisis } from "../utils/safety";
+import CrisisCard from "./CrisisCard";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
 
@@ -15,6 +19,9 @@ function CheckIn({ day, onSave }) {
   const [mood, setMood] = useState(saved?.mood || null);
   const [minutes, setMinutes] = useState(saved?.minutes ?? "");
   const [note, setNote] = useState(saved?.note || "");
+  const [crisis, setCrisis] = useState(false);
+
+  if (crisis) return <CrisisCard onClose={() => setCrisis(false)} />;
 
   if (saved && !editing) {
     const m = MOODS.find((x) => x.id === saved.mood);
@@ -30,7 +37,13 @@ function CheckIn({ day, onSave }) {
   }
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); if (!mood) return; onSave({ mood, minutes: Number(minutes) || 0, note: note.trim() }); setEditing(false); }}
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      if (!mood) return;
+      if (detectCrisis(note)) { setNote(""); setCrisis(true); return; } // never store it
+      onSave({ mood, minutes: Number(minutes) || 0, note: note.trim() });
+      setEditing(false);
+    }}
       className="space-y-3">
       <p className="text-sm font-bold text-on-surface">How did today go?</p>
       <div className="flex gap-2" role="radiogroup" aria-label="Mood">
@@ -67,7 +80,7 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
   useEffect(() => {
     if (!user?.id) return;
     let alive = true;
-    Promise.all([getLearningSnapshot(user.id), getMeta(user.id, "exam_goal"), getDay(user.id)]).then(([snap, exam, today]) => {
+    Promise.all([getLearningSnapshot(user.id), getMeta(user.id, "exam_goal"), getDay(user.id), getMeta(user.id, "habit")]).then(([snap, exam, today, habit]) => {
       if (!alive) return;
       const weak = topicAverages(scores)[0];
       const todayStr = new Date().toDateString();
@@ -79,6 +92,9 @@ export default function TodayPlan({ user, sessions = [], scores = [] }) {
         recentTopic: sessions[0]?.topic,
         exam: exam?.exam_name ? { name: exam.exam_name, daysLeft: daysUntil(exam.exam_date), dailyMinutes: exam.daily_goal_minutes } : null,
         studiedToday: sessions.some((s) => new Date(s.created_at).toDateString() === todayStr),
+        habit: habit?.current && habit.current.week_start === weekStart()
+          ? { sentence: ifThenSentence(habit.current), doneToday: experimentProgress(habit.current).doneToday }
+          : null,
       }));
       setDay(today || {});
     });

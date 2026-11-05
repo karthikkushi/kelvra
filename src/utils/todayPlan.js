@@ -13,11 +13,23 @@ export const MAX_TASKS = 4;
  * @param {string} [s.recentTopic]   last studied topic
  * @param {{name:string, daysLeft:number, dailyMinutes?:number}} [s.exam]
  * @param {boolean} [s.studiedToday]
+ * @param {{sentence:string, doneToday:boolean}} [s.habit]  this week's if-then experiment
  * @returns {{tasks: Array<{id,icon,title,detail,path,minutes}>, focusMinutes:number, headline:string}}
  */
 export function buildTodayPlan(s) {
   const tasks = [];
   const examSoon = s.exam && s.exam.daysLeft >= 0 && s.exam.daysLeft <= 7;
+
+  if (s.habit && !s.habit.doneToday) {
+    tasks.push({
+      id: "habit",
+      icon: "self_improvement",
+      title: "Do your if-then habit",
+      detail: s.habit.sentence,
+      path: "/habits",
+      minutes: 10,
+    });
+  }
 
   if (s.dueCards > 0) {
     const n = Math.min(s.dueCards, 30);

@@ -5,8 +5,8 @@
 //   users/{uid}/cards/{id}         flashcard deck: question, answer, topic + schedule (interval, ease, reps, lapses, due)
 //   users/{uid}/daily/{YYYY-MM-DD} done: [task ids], checkin: { mood, minutes, note }
 //   users/{uid}/explorations/{id}  career & project explorer results
-import { collection, doc, setDoc, deleteDoc, query, where, orderBy, limit, increment } from "firebase/firestore";
-import { db, readDoc, readQuery, saveLater } from "./firebase";
+import { collection, doc, addDoc, setDoc, deleteDoc, query, where, orderBy, limit, increment } from "firebase/firestore";
+import { db, readDoc, readQuery, saveLater, listRecent } from "./firebase";
 import { textId, localDateKey } from "./hash";
 import { newCard, schedule } from "./srs";
 
@@ -28,7 +28,7 @@ async function list(uid, name, ...constraints) {
 
 // ── Mistake notebook ──
 // options: [{ id: "A", text }]. Saving the same question again counts it as another miss.
-export function saveMistake(uid, { question, options, correct, chosen, explanation, topic }) {
+export function saveMistake(uid, { question, options, correct, chosen, explanation, topic, confidence = null }) {
   if (!ok(uid) || !question) return;
   saveLater(setDoc(ref(uid, "mistakes", textId(question, "m")), {
     question,
@@ -39,6 +39,9 @@ export function saveMistake(uid, { question, options, correct, chosen, explanati
     topic: topic || "General",
     wrong_count: increment(1),
     mastered: false,
+    // "Sure but wrong" mistakes are fixed first (hypercorrection effect)
+    confident: confidence === "sure",
+    confidence: confidence || null,
     last_wrong: nowIso(),
   }, { merge: true }), "Save mistake");
 }
@@ -55,6 +58,35 @@ export function markMistake(uid, id, correctNow) {
 export function deleteMistake(uid, id) {
   if (ok(uid)) saveLater(deleteDoc(ref(uid, "mistakes", id)), "Delete mistake");
 }
+
+// ── Confidence check ──
+// users/{uid}/confidence/{id}: { topic, confidence: guess|unsure|sure, correct, source, created_at }
+export function saveConfidence(uid, { topic, confidence, correct, source = "quiz" }) {
+  if (!ok(uid) || !confidence) return;
+  saveLater(addDoc(col(uid, "confidence"), { topic: topic || "General", confidence, correct: !!correct, source, created_at: nowIso() }), "Save confidence");
+}
+
+export const getConfidenceRecords = (uid, max = 300) => list(uid, "confidence", orderBy("created_at", "desc"), limit(max));
+
+// ── Answer-writing coach ──
+// users/{uid}/answers/{id}: question, marks, board, topic, attempts[], model_answer, created_at
+export function newAnswerId() {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 20); // random id, works offline
+}
+
+export function saveAnswer(uid, id, data) {
+  if (ok(uid)) saveLater(setDoc(ref(uid, "answers", id), { ...data, updated_at: nowIso() }, { merge: true }), "Save answer");
+}
+
+export const getAnswers = (uid, max = 30) => list(uid, "answers", orderBy("created_at", "desc"), limit(max));
+
+// ── Focus & distraction tracker (private to the student) ──
+// users/{uid}/focus/{id}: task, planned_min, actual_min, completed, leaves, away_sec, leave_tags, rating, pulled, created_at
+export function saveFocusSession(uid, data) {
+  if (ok(uid)) saveLater(addDoc(col(uid, "focus"), { ...data, created_at: nowIso() }), "Save focus session");
+}
+
+export const getFocusSessions = (uid, max = 60) => list(uid, "focus", orderBy("created_at", "desc"), limit(max));
 
 // ── Flashcard deck (spaced repetition) ──
 // Adds cards from a study kit. Cards already in the deck keep their schedule.
@@ -133,4 +165,25 @@ export async function getLearningSnapshot(uid) {
   open.forEach((m) => { byTopic[m.topic] = (byTopic[m.topic] || 0) + 1; });
   const mistakeTopics = Object.entries(byTopic).sort((a, b) => b[1] - a[1]).map(([topic, count]) => ({ topic, count }));
   return { dueCards: due.length, openMistakes: open.length, mistakeTopics, checkins };
+}
+
+// ── Habit & behaviour coach ──
+// All study activity as simple events for the behaviour report (last ~4 weeks).
+export async function getActivityEvents(uid) {
+  if (!ok(uid)) return [];
+  const safe = (p) => p.catch(() => []);
+  const [sessions, scores, deck, focus, answers] = await Promise.all([
+    safe(listRecent(uid, "study_sessions", { days: 30 })),
+    safe(listRecent(uid, "quiz_scores", { days: 30 })),
+    getDeck(uid),
+    getFocusSessions(uid, 100),
+    getAnswers(uid, 50),
+  ]);
+  return [
+    ...sessions.map((s) => ({ at: s.created_at, kind: "session" })),
+    ...scores.map((s) => ({ at: s.created_at, kind: "quiz" })),
+    ...deck.filter((c) => c.last_reviewed).map((c) => ({ at: c.last_reviewed, kind: "review" })),
+    ...focus.map((f) => ({ at: f.created_at, kind: "focus", minutes: f.actual_min })),
+    ...answers.map((a) => ({ at: a.created_at, kind: "answer" })),
+  ].filter((e) => e.at);
 }

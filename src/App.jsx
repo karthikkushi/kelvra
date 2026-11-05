@@ -23,6 +23,8 @@ const MentorPage      = lazy(() => import("./pages/MentorPage"));
 const ReviewPage      = lazy(() => import("./pages/ReviewPage"));
 const MistakesPage    = lazy(() => import("./pages/MistakesPage"));
 const ExplorePage     = lazy(() => import("./pages/ExplorePage"));
+const AnswerPage      = lazy(() => import("./pages/AnswerPage"));
+const HabitsPage      = lazy(() => import("./pages/HabitsPage"));
 const SharedKitPage   = lazy(() => import("./pages/SharedKitPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 
@@ -100,7 +102,7 @@ export default function App() {
             <Route path="/flashcards"  element={guard(<FlashcardsPage  user={user} />)} />
             <Route path="/quiz"        element={guard(<QuizPage        user={user} />)} />
             <Route path="/progress"    element={guard(<ProgressPage    user={user} />)} />
-            <Route path="/focus"       element={guard(<FocusPage />)} />
+            <Route path="/focus"       element={guard(<FocusPage       user={user} />)} />
             <Route path="/settings"    element={guard(<SettingsPage    user={user} />)} />
             <Route path="/agents"      element={guard(<AgentsPage      user={user} />)} />
             <Route path="/socratic"    element={guard(<SocraticPage    user={user} />)} />
@@ -108,6 +110,8 @@ export default function App() {
             <Route path="/review"      element={guard(<ReviewPage      user={user} />)} />
             <Route path="/mistakes"    element={guard(<MistakesPage    user={user} />)} />
             <Route path="/explore"     element={guard(<ExplorePage     user={user} />)} />
+            <Route path="/answer"      element={guard(<AnswerPage      user={user} />)} />
+            <Route path="/habits"      element={guard(<HabitsPage      user={user} />)} />
             <Route path="/leaderboard" element={guard(<LeaderboardPage user={user} />)} />
             <Route path="/shared/:shareId" element={firebaseReady ? <SharedKitPage /> : <SetupNeeded />} />
             <Route path="*" element={<Navigate to="/" replace />} />
