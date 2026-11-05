@@ -7,7 +7,7 @@
 //   users/{uid}/explorations/{id}  career & project explorer results
 import { collection, doc, addDoc, setDoc, deleteDoc, query, where, orderBy, limit, increment } from "firebase/firestore";
 import { db, readDoc, readQuery, saveLater, listRecent } from "./firebase";
-import { textId, localDateKey } from "./hash";
+import { textId, localDateKey, randomId } from "./hash";
 import { newCard, schedule } from "./srs";
 
 const col = (uid, name) => collection(db, "users", uid, name);
@@ -71,7 +71,7 @@ export const getConfidenceRecords = (uid, max = 300) => list(uid, "confidence", 
 // ── Answer-writing coach ──
 // users/{uid}/answers/{id}: question, marks, board, topic, attempts[], model_answer, created_at
 export function newAnswerId() {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 20); // random id, works offline
+  return randomId(20); // random id, works offline and on any browser
 }
 
 export function saveAnswer(uid, id, data) {

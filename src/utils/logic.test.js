@@ -298,3 +298,11 @@ test("nav: section lookup and last-used page", () => {
   assert.equal(sectionTarget(coach, { coach: "habits" }), "/habits");
   assert.equal(sectionTarget(coach, { coach: "gone" }), "/mentor");
 });
+
+import { randomId } from "./hash.js";
+test("ids: randomId works without crypto.randomUUID", () => {
+  const a = randomId(), b = randomId();
+  assert.equal(a.length, 20);
+  assert.match(a, /^[a-z0-9]+$/);
+  assert.notEqual(a, b);
+});

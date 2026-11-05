@@ -23,7 +23,22 @@ const groqDevApi = (env) => ({
   },
 });
 
+// Preview mode (VITE_FIREBASE_EMULATOR_PROXY=true): the browser talks to the Firebase emulators
+// through this dev server, so a preview opened on another device can still sign in.
+const emulatorProxy = (env) => env.VITE_FIREBASE_EMULATOR_PROXY === "true" ? {
+  "/identitytoolkit.googleapis.com": "http://127.0.0.1:9099",
+  "/securetoken.googleapis.com": "http://127.0.0.1:9099",
+  "/emulator": "http://127.0.0.1:9099",
+  "/google.firestore.v1.Firestore": { target: "http://127.0.0.1:8080", ws: true },
+  "/v1/projects": "http://127.0.0.1:8080",
+} : undefined;
+
 export default defineConfig(({ mode }) => ({
+  server: {
+    proxy: emulatorProxy(loadEnv(mode, process.cwd(), "")),
+    // Preview mode only: the preview opens through another address, so allow any host
+    ...(loadEnv(mode, process.cwd(), "").VITE_FIREBASE_EMULATOR_PROXY === "true" ? { allowedHosts: true } : {}),
+  },
   build: {
     rollupOptions: {
       output: {

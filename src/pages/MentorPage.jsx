@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { loadMentorContext, askMentor, suggestWeeklyGoals, saveMentorState } from "../utils/mentor";
 import { detectCrisis } from "../utils/safety";
+import { randomId } from "../utils/hash";
 import CrisisCard from "../components/CrisisCard";
 
 const filled = { fontVariationSettings: "'FILL' 1" };
@@ -116,14 +117,14 @@ function WeeklyGoals({ ctx, goals, setGoals }) {
   const add = (text) => {
     const t = text.trim();
     if (!t || goals.length >= 6) return;
-    setGoals([...goals, { id: crypto.randomUUID(), text: t, done: false }]);
+    setGoals([...goals, { id: randomId(), text: t, done: false }]);
   };
 
   const suggest = async () => {
     setBusy(true); setError("");
     try {
       const list = await suggestWeeklyGoals({ ...ctx, goals });
-      setGoals([...goals, ...list.map((text) => ({ id: crypto.randomUUID(), text, done: false }))].slice(0, 6));
+      setGoals([...goals, ...list.map((text) => ({ id: randomId(), text, done: false }))].slice(0, 6));
     } catch (err) {
       setError(err.message);
     } finally {

@@ -63,6 +63,18 @@ npm run build       # production build into dist/
 - **Safety:** messages that sound like self-harm are not sent to the AI or saved; the student sees Tele-MANAS 14416 instead
   ([`src/utils/safety.js`](src/utils/safety.js)). Onboarding asks only an age group; unknown age is treated as under 18.
 
+## Demo preview without a Firebase project
+
+Runs the real app against local Firebase emulators, reachable from another device (e.g. a phone) through the dev server:
+
+```
+npm run emulators   # terminal 1 (needs Java)
+VITE_FIREBASE_API_KEY=demo-key VITE_FIREBASE_AUTH_DOMAIN=demo-kelvra.firebaseapp.com VITE_FIREBASE_PROJECT_ID=demo-kelvra \
+VITE_FIREBASE_APP_ID=demo VITE_FIREBASE_EMULATOR=true VITE_FIREBASE_EMULATOR_PROXY=true npx vite --host 0.0.0.0
+```
+
+Emulator data is lost when the emulators stop. AI features need a reachable `GROQ_API_KEY`.
+
 ## Set up Firebase (once)
 
 1. Go to https://console.firebase.google.com, **Add project** (Google Analytics not needed).

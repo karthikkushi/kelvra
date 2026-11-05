@@ -15,3 +15,12 @@ export function localDateKey(date = new Date()) {
   const d = String(date.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+// Random id that works everywhere (crypto.randomUUID needs https and a newer browser; this does not).
+export function randomId(length = 20) {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = new Uint8Array(length);
+  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+  else for (let i = 0; i < length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  return Array.from(bytes, (b) => chars[b % 36]).join("");
+}

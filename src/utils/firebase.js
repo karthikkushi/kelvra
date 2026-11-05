@@ -37,13 +37,21 @@ if (!firebaseReady) console.error("Firebase keys missing. Copy .env.example to .
 const app = firebaseReady ? initializeApp(config) : null;
 export const auth = app ? getAuth(app) : null;
 export const db = app
-  ? initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
+  ? initializeFirestore(app, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+      // Preview mode: reach the Firestore emulator through the app's own address (see vite.config.js proxy)
+      ...(import.meta.env.VITE_FIREBASE_EMULATOR_PROXY === "true" ? { host: window.location.host, ssl: window.location.protocol === "https:" } : {}),
+    })
   : null;
 
 // Local development against `npm run emulators` (never set this on Vercel).
 if (app && import.meta.env.VITE_FIREBASE_EMULATOR === "true") {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  if (import.meta.env.VITE_FIREBASE_EMULATOR_PROXY === "true") {
+    connectAuthEmulator(auth, window.location.origin, { disableWarnings: true });
+  } else {
+    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  }
 }
 
 // ── Small helpers ──
