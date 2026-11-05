@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 import MnemonicCard from "../components/MnemonicCard";
+import { rateCardByText } from "../utils/learning";
+
+// This page's 3 buttons map onto the review deck's ratings
+const DECK_RATING = { hard: "hard", ok: "good", easy: "easy" };
 
 const CARDS = [
   {
@@ -53,7 +57,7 @@ function storedCards() {
   return CARDS;
 }
 
-export default function FlashcardsPage() {
+export default function FlashcardsPage({ user }) {
   const navigate = useNavigate();
   const [cards] = useState(storedCards);
   const [index, setIndex] = useState(0);
@@ -72,6 +76,7 @@ export default function FlashcardsPage() {
 
   const rate = (r) => {
     setRatings({ ...ratings, [index]: r });
+    if (user?.id && cards !== CARDS) rateCardByText(user.id, card.question, DECK_RATING[r]);
     if (index < cards.length - 1) {
       setFlipped(false);
       setTimeout(() => setIndex(index + 1), 200);
@@ -130,6 +135,10 @@ export default function FlashcardsPage() {
               <button onClick={() => navigate("/quiz")}
                 className="w-full py-4 bg-primary-container text-on-primary-container font-bold rounded-xl hover:scale-[1.02] active:scale-95 transition-all">
                 Continue to Quiz
+              </button>
+              <button onClick={() => navigate("/review")}
+                className="w-full py-4 border border-primary-container/30 text-primary-container rounded-xl hover:bg-primary-container/10 transition-all font-bold">
+                Open my review deck
               </button>
               <button onClick={() => { setIndex(0); setFlipped(false); setRatings({}); setDone(false); }}
                 className="w-full py-4 border border-outline-variant/30 text-on-surface-variant rounded-xl hover:bg-surface-container-highest transition-all font-medium">

@@ -8,9 +8,12 @@ import ThemeToggle from "./ThemeToggle";
 const LINKS = [
   { id: "dashboard",   icon: "dashboard",   label: "Dashboard",   path: "/dashboard" },
   { id: "study",       icon: "menu_book",   label: "Study",       path: "/study" },
+  { id: "review",      icon: "repeat",      label: "Review",      path: "/review" },
   { id: "flashcards",  icon: "style",       label: "Flashcards",  path: "/flashcards" },
   { id: "quiz",        icon: "quiz",        label: "Quiz",        path: "/quiz" },
+  { id: "mistakes",    icon: "assignment_late", label: "Mistakes", path: "/mistakes" },
   { id: "mentor",      icon: "diversity_3", label: "Mentor",      path: "/mentor" },
+  { id: "explore",     icon: "explore",     label: "Explore",     path: "/explore" },
   { id: "agents",      icon: "smart_toy",   label: "AI Agents",   path: "/agents" },
   { id: "socratic",    icon: "psychology",  label: "AI Tutor",    path: "/socratic" },
   { id: "focus",       icon: "timer",       label: "Focus",       path: "/focus" },
@@ -19,7 +22,7 @@ const LINKS = [
 ];
 
 // The four most used pages sit on the phone bar; everything else is under "More".
-const MOBILE_MAIN = ["dashboard", "study", "quiz", "mentor"];
+const MOBILE_MAIN = ["dashboard", "study", "review", "mentor"];
 const SHORT = { dashboard: "Home", flashcards: "Cards", leaderboard: "Ranks", insights: "Stats" };
 
 const filled = { fontVariationSettings: "'FILL' 1" };
@@ -111,7 +114,7 @@ export default function Sidebar({ active = "dashboard", mobileNav = true }) {
               }`}>
               <span className="material-symbols-outlined" style={active === l.id ? filled : {}}>{l.icon}</span>
               {l.label}
-              {l.id === "mentor" && (
+              {["review", "mistakes", "explore"].includes(l.id) && (
                 <span className="ml-auto text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary-container/15 text-primary-container">New</span>
               )}
             </button>

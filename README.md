@@ -30,6 +30,14 @@ npm run build       # production build into dist/
   adds the Groq key from the server-only `GROQ_API_KEY`, and picks the model: `openai/gpt-oss-120b` for text,
   `qwen/qwen3.8-27b` for photos and handwriting. The key is never sent to the browser.
 - **Mentor:** [`src/pages/MentorPage.jsx`](src/pages/MentorPage.jsx) and [`src/utils/mentor.js`](src/utils/mentor.js).
+- **Learning features** (data in [`src/utils/learning.js`](src/utils/learning.js), all offline-capable):
+  - **Mistake notebook** (`/mistakes`): every wrong quiz answer is saved by topic; retest until mastered; "ask my mentor" per mistake.
+  - **Review deck** (`/review`): flashcards from every study kit join a spaced-repetition deck (simplified SM-2 in
+    [`src/utils/srs.js`](src/utils/srs.js)); rate Again / Hard / Good / Easy, only due cards are shown.
+  - **Today plan + check-in** (dashboard): 3-4 tasks built from due cards, open mistakes, weak topics and the exam date
+    ([`src/utils/todayPlan.js`](src/utils/todayPlan.js), no AI needed), plus a mood / minutes / note check-in.
+  - **Career & project explorer** (`/explore`): real-world uses, jobs, a hands-on project and interview questions for any topic.
+  - The mentor reads all of it (mistakes, due cards, recent check-ins) before answering.
 
 ## Set up Firebase (once)
 
@@ -50,4 +58,4 @@ The free Spark plan is enough to start and, unlike Supabase's free tier, does no
 
 - Data from the old Supabase project was not copied over (that project is paused). New accounts start empty.
 - Photo and handwriting reading uses a Groq preview model, which Groq may retire at short notice.
-- Tests cover the AI server function and the database security rules, not the pages.
+- Tests cover the AI server function, the spaced-repetition and today-plan logic, and the database security rules; not the pages.

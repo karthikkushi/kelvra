@@ -4,6 +4,8 @@
 // Conversation and weekly goals are saved in users/{uid}/meta/mentor.
 import { groqFetch, aiErrorMessage } from "./claudeAPI";
 import { listRecent, getMeta, setMeta } from "./firebase";
+import { getLearningSnapshot } from "./learning";
+import { MOODS } from "./todayPlan";
 
 const MAX_SAVED_MESSAGES = 40;   // kept in the database
 const MAX_SENT_MESSAGES = 12;    // sent to the AI each turn (keeps requests small)
@@ -46,11 +48,12 @@ export function daysUntil(dateStr) {
 // Everything the mentor needs to know, loaded in one go. Works offline from the local cache.
 export async function loadMentorContext(user) {
   const uid = user?.id;
-  const [scores, sessions, exam, state] = await Promise.all([
+  const [scores, sessions, exam, state, learning] = await Promise.all([
     listRecent(uid, "quiz_scores", { max: 60 }).catch(() => []),
     listRecent(uid, "study_sessions", { max: 40 }).catch(() => []),
     getMeta(uid, "exam_goal"),
     getMeta(uid, "mentor"),
+    getLearningSnapshot(uid).catch(() => ({ dueCards: 0, openMistakes: 0, mistakeTopics: [], checkins: [] })),
   ]);
   const averages = topicAverages(scores);
   const meta = user?.user_metadata || {};
@@ -68,6 +71,10 @@ export async function loadMentorContext(user) {
     weakTopics: averages.filter((t) => t.avg < 70).slice(0, 4),
     strongTopics: averages.filter((t) => t.avg >= 85).slice(-3).reverse(),
     recentTopics: [...new Set(sessions.map((s) => s.topic))].slice(0, 5),
+    dueCards: learning.dueCards,
+    openMistakes: learning.openMistakes,
+    mistakeTopics: learning.mistakeTopics.slice(0, 3),
+    checkins: learning.checkins,
     messages: Array.isArray(state?.messages) ? state.messages : [],
     goals: state?.week_start === thisWeek && Array.isArray(state?.goals) ? state.goals : [],
     lastWeekGoals: state?.week_start && state.week_start !== thisWeek && Array.isArray(state?.goals) ? state.goals : [],
@@ -87,6 +94,9 @@ export function describeStudent(ctx) {
     ctx.weakTopics.length && `Weak topics (avg score): ${ctx.weakTopics.map((t) => `${t.topic} ${t.avg}%`).join(", ")}`,
     ctx.strongTopics.length && `Strong topics: ${ctx.strongTopics.map((t) => `${t.topic} ${t.avg}%`).join(", ")}`,
     ctx.recentTopics.length && `Recently studied: ${ctx.recentTopics.join(", ")}`,
+    ctx.openMistakes && `Open mistakes in notebook: ${ctx.openMistakes} (most in ${ctx.mistakeTopics.map((t) => `${t.topic} x${t.count}`).join(", ")})`,
+    ctx.dueCards && `Flashcards due for review now: ${ctx.dueCards}`,
+    ctx.checkins?.length && `Recent daily check-ins: ${ctx.checkins.map((c) => `${c.date}: ${MOODS.find((m) => m.id === c.checkin.mood)?.label || "?"} mood, ${c.checkin.minutes || 0} min${c.checkin.note ? `, "${c.checkin.note}"` : ""}`).join("; ")}`,
     ctx.goals.length && `This week's goals: ${ctx.goals.map((g) => `${g.done ? "[done]" : "[open]"} ${g.text}`).join("; ")}`,
     ctx.lastWeekGoals.length && `Last week's goals: ${ctx.lastWeekGoals.filter((g) => g.done).length} of ${ctx.lastWeekGoals.length} done`,
   ];
@@ -101,7 +111,8 @@ How you help:
 - Give practical next steps they can do today (at most 3), sized to their time left before the exam.
 - Be honest. If they are behind, say so kindly and give a recovery plan. Do not flatter.
 - Do not invent statistics, salaries, exam dates, cut-offs, names of institutions or links. If unsure, say so and suggest how to find out.
-- You can suggest Kelvra tools when useful: Study (make flashcards/quiz from notes), Quiz, AI Tutor (Socratic questions), Focus timer.
+- You can suggest Kelvra tools when useful: Study (make flashcards/quiz from notes), Review (due flashcards), Mistakes (retest wrong answers), Explore (careers and projects for a topic), AI Tutor (Socratic questions), Focus timer.
+- If recent check-ins show low mood or very little study, notice it kindly and adjust the plan to something small and doable.
 - If the student mentions self-harm, abuse or a crisis, respond with care and encourage them to talk to a trusted adult, a counsellor, or a local emergency/helpline number right away.
 - Reply in the language the student writes in.
 
@@ -147,4 +158,43 @@ export function saveMentorState(userId, { messages, goals }) {
     goals,
     messages: messages.slice(-MAX_SAVED_MESSAGES),
   });
+}
+
+// ── Career & project explorer ──
+// For one topic: where it is used, jobs that use it, a small hands-on project and interview questions.
+export async function exploreTopic(topic, ctx) {
+  const raw = await chat([
+    { role: "system", content: "You are a practical career and learning mentor for students. Reply with JSON only, no markdown." },
+    {
+      role: "user",
+      content: `Topic: "${topic}"
+${ctx ? `Student: ${[ctx.studyType && `studies ${ctx.studyType}`, ctx.goal && `goal: ${ctx.goal}`].filter(Boolean).join(", ") || "student"}` : ""}
+
+Explain how this topic matters outside the classroom. Be concrete and accurate. Do NOT invent salaries, statistics, company claims or links.
+Reply exactly in this JSON shape:
+{
+  "summary": "one sentence: what this topic is really about, in plain words",
+  "realWorld": ["3 concrete real-life or industry uses, one sentence each"],
+  "careers": [{"title": "job title", "how": "how this job uses the topic, one sentence", "skills": ["2-3 skills to build"]}],
+  "project": {"title": "a small project a student can build or do", "goal": "what they will learn", "steps": ["4-6 short steps"], "time": "rough time, e.g. 2 weekends", "tools": ["free tools or materials"]},
+  "interview": [{"q": "an interview or viva question about this topic", "hint": "what a good answer covers"}]
+}
+Give exactly 3 careers and 5 interview questions.`,
+    },
+  ], { maxTokens: 1600, temperature: 0.5 });
+  const match = raw.match(/\{[\s\S]*\}/);
+  let data;
+  try { data = JSON.parse(match?.[0]); } catch { /* handled below */ }
+  if (!data?.careers || !data?.project) throw new Error("The explorer's answer was incomplete. Please try again.");
+  const arr = (v) => (Array.isArray(v) ? v : []);
+  return {
+    summary: String(data.summary || ""),
+    realWorld: arr(data.realWorld).map(String).slice(0, 4),
+    careers: arr(data.careers).slice(0, 4).map((c) => ({ title: String(c.title || ""), how: String(c.how || ""), skills: arr(c.skills).map(String).slice(0, 4) })),
+    project: {
+      title: String(data.project.title || ""), goal: String(data.project.goal || ""),
+      steps: arr(data.project.steps).map(String).slice(0, 8), time: String(data.project.time || ""), tools: arr(data.project.tools).map(String).slice(0, 6),
+    },
+    interview: arr(data.interview).slice(0, 6).map((x) => ({ q: String(x.q || ""), hint: String(x.hint || "") })),
+  };
 }

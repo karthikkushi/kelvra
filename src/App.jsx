@@ -20,6 +20,9 @@ const SettingsPage    = lazy(() => import("./pages/SettingsPage"));
 const AgentsPage      = lazy(() => import("./pages/AgentsPage"));
 const SocraticPage    = lazy(() => import("./pages/SocraticPage"));
 const MentorPage      = lazy(() => import("./pages/MentorPage"));
+const ReviewPage      = lazy(() => import("./pages/ReviewPage"));
+const MistakesPage    = lazy(() => import("./pages/MistakesPage"));
+const ExplorePage     = lazy(() => import("./pages/ExplorePage"));
 const SharedKitPage   = lazy(() => import("./pages/SharedKitPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 
@@ -102,6 +105,9 @@ export default function App() {
             <Route path="/agents"      element={guard(<AgentsPage      user={user} />)} />
             <Route path="/socratic"    element={guard(<SocraticPage    user={user} />)} />
             <Route path="/mentor"      element={guard(<MentorPage      user={user} />)} />
+            <Route path="/review"      element={guard(<ReviewPage      user={user} />)} />
+            <Route path="/mistakes"    element={guard(<MistakesPage    user={user} />)} />
+            <Route path="/explore"     element={guard(<ExplorePage     user={user} />)} />
             <Route path="/leaderboard" element={guard(<LeaderboardPage user={user} />)} />
             <Route path="/shared/:shareId" element={firebaseReady ? <SharedKitPage /> : <SetupNeeded />} />
             <Route path="*" element={<Navigate to="/" replace />} />

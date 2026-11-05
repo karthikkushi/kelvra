@@ -11,6 +11,7 @@ import {
 import { saveStudySession } from "../utils/firebase";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled } from "../utils/voice";
 import { awardXP } from "../utils/gamification";
+import { addCardsToDeck } from "../utils/learning";
 import { shareStudyKit } from "../utils/sharing";
 import MnemonicCard from "../components/MnemonicCard";
 import { handwritingToText } from "../utils/claudeAPI";
@@ -164,6 +165,7 @@ export default function StudyPage({ user }) {
   const [loadStep, setLoadStep] = useState("");
   const [error, setError] = useState("");
   const [results, setResults] = useState(null);
+  const [deckAdded, setDeckAdded] = useState(0);
   const [activeResult, setActiveResult] = useState("summary");
   const [pdfText, setPdfText] = useState("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
@@ -314,7 +316,7 @@ export default function StudyPage({ user }) {
     const content = getContent();
     if (!content) { setError("Please add some content first."); return; }
     if (outputs.size === 0) { setError("Please select at least one output type."); return; }
-    setError(""); setResults(null); setLoading(true);
+    setError(""); setResults(null); setDeckAdded(0); setLoading(true);
 
     const stepInterval = setInterval(() => {
       setLoadStep(LOAD_STEPS[Math.floor(Math.random() * LOAD_STEPS.length)]);
@@ -346,6 +348,11 @@ export default function StudyPage({ user }) {
       if (user?.id) {
         try {
           await saveStudySession(user.id, getTopicName(), generated);
+          // New flashcards join the spaced-repetition deck (Review page)
+          if (generated.flashcards) {
+            const added = await addCardsToDeck(user.id, generated.flashcards, getTopicName());
+            if (added) setDeckAdded(added);
+          }
         } catch { /* never block UI */ }
       }
     } catch (err) {
@@ -359,6 +366,7 @@ export default function StudyPage({ user }) {
 
   const navigateWithData = (path, dataKey) => {
     if (results?.[dataKey]) sessionStorage.setItem(`kelvra_${dataKey}`, JSON.stringify(results[dataKey]));
+    sessionStorage.setItem("kelvra_topic", getTopicName());
     navigate(path);
   };
 
@@ -648,6 +656,14 @@ export default function StudyPage({ user }) {
 
             <div>
               {activeResult === "summary"    && results.summary    && <SummaryResult data={results.summary} />}
+              {activeResult === "flashcards" && deckAdded > 0 && (
+                <button onClick={() => navigate("/review")}
+                  className="w-full mb-4 flex items-center gap-3 text-left px-4 py-3 rounded-xl bg-primary-container/10 border border-primary-container/20 text-sm text-on-surface hover:bg-primary-container/15">
+                  <span className="material-symbols-outlined text-primary-container">repeat</span>
+                  <span className="flex-1">{deckAdded} card{deckAdded === 1 ? "" : "s"} added to your review deck. Kelvra will bring each one back right before you would forget it.</span>
+                  <span className="text-primary-container font-bold text-xs">Review →</span>
+                </button>
+              )}
               {activeResult === "flashcards" && results.flashcards && <FlashcardsResult data={results.flashcards} onStudy={() => navigateWithData("/flashcards","flashcards")} />}
               {activeResult === "flashcards" && results.flashcards && results.flashcards.length > 0 && (
                 <div className="mt-6">

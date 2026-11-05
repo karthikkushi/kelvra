@@ -4,6 +4,7 @@ import { getStudySessions, getQuizScores } from "../utils/firebase";
 import Sidebar from "../components/Sidebar";
 import { getUserXP } from "../utils/gamification";
 import ExamCountdown from "../components/ExamCountdown";
+import TodayPlan from "../components/TodayPlan";
 import ThemeToggle from "../components/ThemeToggle";
 
 function calcStreak(sessions) {
@@ -41,13 +42,6 @@ function calcWeakSpots(scores) {
     .slice(0, 3);
 }
 
-function getRecentTopics(sessions, scores) {
-  // Topics scored below 80% recently
-  const topicsWithScores = new Set(scores.filter((s) => s.pct < 80).map((s) => s.topic));
-  const recentSessions = sessions.filter((s) => s.topic && topicsWithScores.has(s.topic)).slice(0, 3);
-  return recentSessions;
-}
-
 function getLongestNotStudied(sessions) {
   if (!sessions.length) return null;
   const byTopic = {};
@@ -63,6 +57,13 @@ function getLongestNotStudied(sessions) {
   const [topic, lastDate] = entries[0];
   const daysAgo = Math.floor((Date.now() - new Date(lastDate)) / (1000 * 60 * 60 * 24));
   return { topic, daysAgo };
+}
+
+function greeting(hour = new Date().getHours()) {
+  if (hour < 5) return "Up late";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function Skeleton({ className }) {
@@ -103,8 +104,9 @@ export default function DashboardPage({ user }) {
   const quizAccuracy  = loading ? 0  : (scores.length ? Math.round(scores.reduce((a, b) => a + b.pct, 0) / scores.length) : 0);
   const studyHours    = loading ? 0  : (sessions.length * 0.5).toFixed(1);
   const weakSpots     = loading ? [] : calcWeakSpots(scores);
-  const reviewTopics  = loading ? [] : getRecentTopics(sessions, scores);
-  const coachTopic    = loading ? null : getLongestNotStudied(sessions);
+  // Only warn about a topic that has really been left alone (2+ days)
+  const oldest        = loading ? null : getLongestNotStudied(sessions);
+  const coachTopic    = oldest && oldest.daysAgo >= 2 ? oldest : null;
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
 
@@ -115,18 +117,7 @@ export default function DashboardPage({ user }) {
     { label: "Study hours",     value: loading ? "…" : String(studyHours),      color: "text-on-surface" },
   ];
 
-  // Build today's study plan from review topics or fallback
-  const TASKS = reviewTopics.length > 0
-    ? reviewTopics.map((s, i) => ({
-        num: String(i + 1).padStart(2, "0"),
-        title: s.topic || "Study Session",
-        time: "25 min",
-        diff: "Review",
-        diffColor: "bg-tertiary-container/20 text-tertiary-fixed border-tertiary/20",
-      }))
-    : [
-        { num: "01", title: "Start a study session", time: "25 min", diff: "Easy", diffColor: "bg-primary-container/10 text-primary-container border-primary-container/20" },
-      ];
+
 
   return (
     <div className="min-h-screen bg-background text-on-surface font-body">
@@ -156,8 +147,6 @@ export default function DashboardPage({ user }) {
             </div>
             {/* Theme toggle */}
             <ThemeToggle compact={true} />
-            {/* Language */}
-            <span className="hidden sm:block material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary-container transition-colors">language</span>
             {/* Avatar */}
             <div className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center border border-primary-container/20">
               <span className="text-xs font-bold text-on-primary-container">
@@ -173,9 +162,9 @@ export default function DashboardPage({ user }) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 flex flex-col justify-end py-4">
               <h1 className="font-headline text-4xl md:text-5xl font-extrabold tracking-tighter text-on-surface">
-                Good morning, <span className="text-primary-container">{firstName}</span>.
+                {greeting()}, <span className="text-primary-container">{firstName}</span>.
               </h1>
-              <p className="text-on-surface-variant mt-2 text-lg">Ready to study?</p>
+              <p className="text-on-surface-variant mt-2 text-lg">Here is your plan for today.</p>
             </div>
 
             {/* AI Coach card */}
@@ -192,7 +181,7 @@ export default function DashboardPage({ user }) {
                       <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-primary-container">AI Smart Coach</span>
                       <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
                       <span className="text-[10px] uppercase font-bold tracking-[0.2em] text-on-surface-variant">
-                        {coachTopic ? "Urgent Review" : "Start Learning"}
+                        {coachTopic ? "Urgent Review" : sessions.length ? "On track" : "Start Learning"}
                       </span>
                     </div>
                     {loading ? (
@@ -203,7 +192,16 @@ export default function DashboardPage({ user }) {
                           You haven't reviewed <span className="text-tertiary-fixed-dim">{coachTopic.topic}</span> in {coachTopic.daysAgo} day{coachTopic.daysAgo !== 1 ? "s" : ""} — you might forget it soon.
                         </h3>
                         <p className="text-on-surface-variant mt-2 text-sm max-w-xl">
-                          Spaced repetition data suggests review now to lock in the neural pathway.
+                          Topics you leave alone fade fastest. A quick review now keeps it fresh.
+                        </p>
+                      </>
+                    ) : sessions.length ? (
+                      <>
+                        <h3 className="font-headline text-xl font-bold text-on-surface">
+                          You are on track. Follow today's plan below.
+                        </h3>
+                        <p className="text-on-surface-variant mt-2 text-sm max-w-xl">
+                          Review due cards, retest mistakes, and check in tonight so your mentor can adjust tomorrow.
                         </p>
                       </>
                     ) : (
@@ -239,40 +237,9 @@ export default function DashboardPage({ user }) {
           {/* ── Study Plan + Weak Spots ── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-            {/* Today's plan */}
-            <div className="lg:col-span-8 space-y-6">
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-headline text-2xl font-bold tracking-tight">Today's Study Plan</h2>
-                <span onClick={() => navigate("/study")} className="text-sm text-primary-container font-medium cursor-pointer hover:underline">New Session</span>
-              </div>
-              <div className="space-y-4">
-                {loading ? (
-                  [1,2,3].map((i) => <Skeleton key={i} className="h-20 w-full" />)
-                ) : (
-                  TASKS.map((t) => (
-                    <div key={t.num}
-                      onClick={() => navigate("/study")}
-                      className="bg-surface-container-highest/40 hover:bg-surface-container-highest transition-all duration-300 rounded-xl p-5 flex items-center gap-6 border border-outline-variant/5 cursor-pointer group min-h-[72px]">
-                      <div className="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center font-bold text-on-surface-variant font-headline text-sm">
-                        {t.num}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-lg group-hover:text-primary-container transition-colors">{t.title}</h4>
-                        <div className="flex items-center gap-4 mt-1">
-                          <div className="flex items-center gap-1.5 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-sm">schedule</span>
-                            <span className="text-xs font-medium">{t.time}</span>
-                          </div>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${t.diffColor}`}>
-                            {t.diff}
-                          </span>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-on-surface-variant/40 group-hover:text-primary-container transition-colors">play_circle</span>
-                    </div>
-                  ))
-                )}
-              </div>
+            {/* Today's plan: tasks from due cards, mistakes, weak topics and exam date, plus check-in */}
+            <div className="lg:col-span-8">
+              {loading ? <Skeleton className="h-72 w-full" /> : <TodayPlan user={user} sessions={sessions} scores={scores} />}
             </div>
 
             {/* Weak spots */}

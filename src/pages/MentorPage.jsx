@@ -66,6 +66,20 @@ function Snapshot({ ctx }) {
           </div>
         ))}
       </div>
+      {(ctx.openMistakes > 0 || ctx.dueCards > 0) && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {ctx.openMistakes > 0 && (
+            <button onClick={() => navigate("/mistakes")} className="text-xs px-3 py-1.5 rounded-full bg-error-container/10 text-error border border-error/15 hover:bg-error-container/20">
+              {ctx.openMistakes} mistake{ctx.openMistakes === 1 ? "" : "s"} to retest →
+            </button>
+          )}
+          {ctx.dueCards > 0 && (
+            <button onClick={() => navigate("/review")} className="text-xs px-3 py-1.5 rounded-full bg-primary-container/10 text-primary-container border border-primary-container/20 hover:bg-primary-container/20">
+              {ctx.dueCards} card{ctx.dueCards === 1 ? "" : "s"} due →
+            </button>
+          )}
+        </div>
+      )}
       {ctx.weakTopics.length > 0 ? (
         <div>
           <p className="text-xs text-on-surface-variant mb-2">Needs work</p>
@@ -180,6 +194,7 @@ export default function MentorPage({ user }) {
   const [thinking, setThinking] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("chat"); // phones only: "chat" | "goals"
+  const [pendingPrompt, setPendingPrompt] = useState(null);
   const endRef = useRef(null);
   const loaded = useRef(false);
 
@@ -192,6 +207,12 @@ export default function MentorPage({ user }) {
       setMessages(c.messages);
       setGoals(c.goals);
       loaded.current = true;
+      // A question sent from another page (Mistakes, Explore): ask it straight away
+      const pending = sessionStorage.getItem("kelvra_mentor_prompt");
+      if (pending) {
+        sessionStorage.removeItem("kelvra_mentor_prompt");
+        setPendingPrompt(pending);
+      }
     });
     return () => { alive = false; };
   }, [user]);
@@ -225,6 +246,14 @@ export default function MentorPage({ user }) {
       setThinking(false);
     }
   };
+
+  // Send a question that another page handed over (once the mentor's context has loaded)
+  useEffect(() => {
+    if (!pendingPrompt || !ctx) return;
+    const text = pendingPrompt;
+    setPendingPrompt(null);
+    send(text);
+  }, [pendingPrompt, ctx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clearChat = () => {
     if (window.confirm("Clear this conversation? Your goals stay.")) setMessages([]);

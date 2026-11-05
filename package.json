@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test": "node --test api/groq.test.js",
+    "test": "node --test api/groq.test.js src/utils/logic.test.js",
     "test:rules": "node --test scripts/rules.test.mjs",
     "emulators": "npx firebase-tools@14 emulators:start --only auth,firestore --project demo-kelvra"
   },

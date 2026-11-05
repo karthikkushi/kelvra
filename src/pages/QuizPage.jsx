@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { saveQuizScore } from "../utils/firebase";
 import { awardXP } from "../utils/gamification";
+import { saveMistake } from "../utils/learning";
 import { speak, stopSpeaking, getVoiceEnabled, setVoiceEnabled, isSpeechSupported } from "../utils/voice";
 
 const QUESTIONS = [
@@ -101,9 +102,22 @@ function storedQuestions() {
   return QUESTIONS;
 }
 
+// Topic name of the study kit the quiz came from (set by the Study page).
+function storedTopic() {
+  try { return sessionStorage.getItem("kelvra_topic") || ""; } catch { return ""; }
+}
+
+// Generated questions are tagged "Generated"; use the kit's real topic instead,
+// so scores and mistakes are grouped by subject.
+function topicOf(question) {
+  if (question?.topic && question.topic !== "Generated") return question.topic;
+  return storedTopic() || "General";
+}
+
 export default function QuizPage({ user }) {
   const navigate = useNavigate();
   const [questions] = useState(storedQuestions);
+  const isSample = questions === QUESTIONS; // the built-in demo quiz is not saved to the notebook
   const [qIndex, setQIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showExplanation, setShowExplanation] = useState(false);
@@ -143,7 +157,10 @@ export default function QuizPage({ user }) {
       setBuddyMsg("Great job! You're on fire 🔥");
       setDiffIndex(Math.min(diffIndex + 1, 2));
     } else {
-      setBuddyMsg("Not quite — read the explanation 📖");
+      setBuddyMsg("Not quite — saved to your Mistake notebook 📖");
+      if (user?.id && !isSample) {
+        saveMistake(user.id, { question: q.question, options: q.options, correct: q.correct, chosen: id, explanation: q.explanation, topic: topicOf(q) });
+      }
       setDiffIndex(Math.max(diffIndex - 1, 0));
     }
     setTimeout(() => setBuddyMsg(""), 3000);
@@ -155,15 +172,15 @@ export default function QuizPage({ user }) {
       setQIndex(qIndex + 1);
     } else {
       setDone(true);
-      // Save quiz score (non-blocking, works offline)
-      if (user?.id) {
+      // Save quiz score (non-blocking, works offline). The demo quiz is not saved.
+      if (user?.id && !isSample) {
         try {
           const finalScore = Object.entries(answers).filter(([i, a]) => questions[Number(i)].correct === a).length;
-          const topicName = questions[0]?.topic || "Quiz";
+          const topicName = topicOf(questions[0]);
           await saveQuizScore(user.id, topicName, finalScore, total);
           const pct = Math.round((finalScore / total) * 100);
-          awardXP(user.id, "COMPLETE_QUIZ", {}, user);
-          if (pct === 100) awardXP(user.id, "PERFECT_QUIZ", {}, user);
+          await awardXP(user.id, "COMPLETE_QUIZ", {}, user);
+          if (pct === 100) await awardXP(user.id, "PERFECT_QUIZ", {}, user);
         } catch { /* never block UI */ }
       }
     }
@@ -211,7 +228,19 @@ export default function QuizPage({ user }) {
                 </div>
               ))}
             </div>
+            {isSample && (
+              <p className="text-xs text-on-surface-variant mb-4">
+                This was the sample quiz, so it was not saved. Make a quiz from your own notes on the Study page.
+              </p>
+            )}
             <div className="flex flex-col gap-3">
+              {!isSample && total - score > 0 && (
+                <button onClick={() => navigate("/mistakes")}
+                  className="w-full py-4 bg-error-container/15 border border-error/20 text-error font-bold rounded-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                  <span className="material-symbols-outlined text-lg">assignment_late</span>
+                  Retest your {total - score} mistake{total - score === 1 ? "" : "s"}
+                </button>
+              )}
               <button onClick={() => navigate("/progress")}
                 className="w-full py-4 bg-primary-container text-on-primary-container font-bold rounded-xl hover:scale-[1.02] active:scale-95 transition-all">
                 View Full Insights
